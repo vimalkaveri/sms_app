@@ -1,0 +1,88 @@
+// sms_controller.dart
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:telephony/telephony.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+class SMSController {
+  final Telephony _telephony = Telephony.instance;
+  Timer? _timeoutTimer;
+  bool _isListening = false;
+
+  Future<void> requestPermissions() async {
+    final status = await Permission.sms.request();
+    if (status != PermissionStatus.granted) {
+      throw Exception("SMS permission is required to send/receive messages.");
+    }
+  }
+
+  Future<void> sendSMS({required String phone, required String message}) async {
+    final isGranted = await Permission.sms.isGranted;
+    if (!isGranted) {
+      throw Exception("SMS permission not granted.");
+    }
+
+    if (phone.isEmpty || message.isEmpty) {
+      throw Exception("Phone number and message cannot be empty.");
+    }
+
+    try {
+      await _telephony.sendSms(
+        to: phone,
+        message: message,
+      );
+      print("SMS sent successfully.");
+    } catch (e) {
+      print("Error sending SMS: $e");
+      throw Exception("Failed to send SMS: $e");
+    }
+  }
+
+  Future<void> listenForSMS({
+    required void Function(SmsMessage message) onMessageReceived,
+    Duration timeout = const Duration(minutes: 1),
+    String? filterKeyword,
+    void Function()? onTimeout,
+  }) async {
+    final isGranted = await Permission.sms.isGranted;
+    if (!isGranted) {
+      throw Exception("SMS permission not granted.");
+    }
+
+    // Cancel any previous timer
+    _timeoutTimer?.cancel();
+
+    _isListening = true; // Start listening
+
+    // Start timeout timer
+    _timeoutTimer = Timer(timeout, () {
+      print("No reply received within timeout.");
+      stopListening();
+      if (onTimeout != null) {
+        onTimeout();
+      }
+    });
+
+    _telephony.listenIncomingSms(
+      onNewMessage: (SmsMessage message) {
+        if (!_isListening) return; // Don't process if not listening
+
+        if (message.body != null) {
+          if (filterKeyword == null || message.body!.contains(filterKeyword)) {
+            print("Received SMS: ${message.body}");
+            _timeoutTimer?.cancel();
+            stopListening();
+            onMessageReceived(message);
+          }
+        }
+      },
+      listenInBackground: false,
+    );
+  }
+
+  void stopListening() {
+    _isListening = false;
+    _timeoutTimer?.cancel();
+    print("Stopped listening for SMS.");
+  }
+}
