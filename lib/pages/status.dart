@@ -1,99 +1,83 @@
 //lib/pages/status
 import 'package:flutter/material.dart';
+import 'package:telephony/telephony.dart';
+import '../controller/sms_controller.dart';
+
 
 class Status extends StatefulWidget {
+  final String phoneNumber;
+
+  const Status({required this.phoneNumber, Key? key}) : super(key: key);
+
   @override
-  _PhNoPageState createState() => _PhNoPageState();
+  _StatusPageState createState() => _StatusPageState();
 }
 
-class _PhNoPageState extends State<Status> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _phoneController = TextEditingController();
+class _StatusPageState extends State<Status> {
+  final SMSController _smsController = SMSController();
+  List<SmsMessage> receivedMessages = [];
+
+  // Hardcoded message
+  final String predefinedMessage = 'ADMIN'; // Hardcoded message
+
+  @override
+  void initState() {
+    super.initState();
+    _smsController.requestPermissions(context);
+    _smsController.startListeningForSMS(context);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  // Sends the hardcoded "ADMIN" message to the phone number passed dynamically
+  void _sendSMS() {
+    final String phoneNumber = widget.phoneNumber;  // Use the phone number passed to the page
+    _smsController.sendSMS(context, phoneNumber, predefinedMessage);
+  }
+
+  Widget _buildMessageTile(SmsMessage message) {
+    return ListTile(
+      leading: const Icon(Icons.sms),
+      title: Text(message.body ?? 'No Content'),
+      subtitle: Text('From: ${message.address ?? ''}'),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Phone Number Settings'),
-      ),
+      appBar: AppBar(title: const Text('SMS Sender & Receiver')),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 10),
+            // Button to send the hardcoded "ADMIN" message
+            ElevatedButton.icon(
+              onPressed: _sendSMS,
+              label: const Text('Set Admin'),
+            ),
+            const SizedBox(height: 20),
+            const Divider(),
             const Text(
-              'Phone Number Settings',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+              'Received Messages:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: receivedMessages.length,
+                itemBuilder: (context, index) =>
+                    _buildMessageTile(receivedMessages[index]),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Here you can set or update the phone number.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            // Form to input phone number
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'Enter Phone Number',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a phone number';
-                  }
-                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                    return 'Please enter a valid 10-digit phone number';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _savePhoneNumber(context);
-                }
-              },
-              child: Text('Save Phone Number'),
             ),
           ],
         ),
       ),
     );
   }
-
-  // Save the phone number and show a confirmation dialog
-  void _savePhoneNumber(BuildContext context) {
-    // In a real app, you would save the phone number to your data source (e.g., database, shared preferences)
-
-    String phoneNumber = _phoneController.text;
-
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Phone Number Saved'),
-          content: Text('Your phone number $phoneNumber has been saved successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pop(); // Optionally pop back to the previous screen
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
+
+
