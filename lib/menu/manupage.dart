@@ -21,34 +21,22 @@ class DeviceDetailsScreen extends StatelessWidget {
   DeviceDetailsScreen({required this.device, Key? key}) : super(key: key);
 
   final List<SettingsItem> settings = [
-    SettingsItem(
-      icon: Icons.admin_panel_settings,
-      label: 'ADMIN',
-      page: (phoneNumber) => AdminPage(phoneNumber: phoneNumber),
-    ),
-    SettingsItem(
-      icon: Icons.phone,
-      label: 'Ph No.',
-      page: (phoneNumber) => PhoneNumberSet(phoneNumber: phoneNumber),
-    ),
-    SettingsItem(
-      icon: Icons.message,
-      label: 'MESSAGE',
-      page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),
-    ),
-    SettingsItem(icon: Icons.notifications, label: 'ALERT', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    SettingsItem(icon: Icons.layers, label: 'ZONES', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    SettingsItem(icon: Icons.refresh, label: 'RESET', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    SettingsItem(icon: Icons.notification_important, label: 'ALERT OPTION', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    SettingsItem(icon: Icons.mic, label: 'VOICE RECORD', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
+    SettingsItem(icon: Icons.admin_panel_settings, label: 'Admin', page: (p) => AdminPage(phoneNumber: p)),
+    SettingsItem(icon: Icons.phone, label: 'Ph No.', page: (p) => PhoneNumberSet(phoneNumber: p)),
+    SettingsItem(icon: Icons.message, label: 'Message', page: (p) => MessageSet(phoneNumber: p)),
+    SettingsItem(icon: Icons.notifications, label: 'Alert', page: (p) => AlertPage(phoneNumber: p)),
+    SettingsItem(icon: Icons.layers, label: 'Zones', page: (p) => ZoneSetPage(phoneNumber: p)),
+    SettingsItem(icon: Icons.refresh, label: 'Reset', page: (p) => ResetPage(phoneNumber: p)),
+    SettingsItem(icon: Icons.notification_important, label: 'Alert Opt.', page: (p) => AlertOption(phoneNumber: p)),
+    SettingsItem(icon: Icons.mic, label: 'Voice Rec.', page: (p) => VoiceRecordPage(phoneNumber: p)),
   ];
 
   final List<StatusItem> status = [
-    StatusItem(icon: Icons.phone_android, label: 'PH NO.', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    StatusItem(icon: Icons.message, label: 'MESSAGE', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    StatusItem(icon: Icons.device_hub, label: 'STATUS',page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    StatusItem(icon: Icons.verified_user, label: 'VERSION', page: (phoneNumber) => MessageSet(phoneNumber: phoneNumber),),
-    StatusItem(icon: Icons.help_outline, label: 'HELP', page: (phoneNumber) => HelpPage()),
+    StatusItem(icon: Icons.phone_android, label: 'Ph No.', page: (p) => PhoneNumberGet(phoneNumber: p)),
+    StatusItem(icon: Icons.message, label: 'Message', page: (p) => MessageGet(phoneNumber: p)),
+    StatusItem(icon: Icons.device_hub, label: 'Status', page: (p) => StatusPage(phoneNumber: p)),
+    StatusItem(icon: Icons.verified_user, label: 'Version', page: (p) => VersionPage(phoneNumber: p)),
+    StatusItem(icon: Icons.help_outline, label: 'Help', page: (_) => HelpPage()),
   ];
 
   @override
@@ -56,128 +44,96 @@ class DeviceDetailsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: _buildTitle(),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade700,
+        elevation: 4,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            _buildSettingsSection(context),
-            const SizedBox(height: 20),
-            _buildStatusSection(context),
+            _buildSectionHeader("Settings", Icons.settings),
+            const SizedBox(height: 10),
+            _buildGrid(context, settings.map((s) => _buildTile(context, s.icon, s.label, s.page)).toList()),
+            const SizedBox(height: 30),
+            _buildSectionHeader("Status", Icons.info),
+            const SizedBox(height: 10),
+            _buildGrid(context, status.map((s) => _buildTile(context, s.icon, s.label, s.page)).toList()),
           ],
         ),
       ),
     );
   }
 
-  // Title widget for the app bar
   Widget _buildTitle() {
-    return Text(
-      '${device.deviceName}\n${device.phoneNumber}',
-      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(device.deviceName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(device.phoneNumber, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 
-  // Settings section widget
-  Widget _buildSettingsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
       children: [
-        const Text(
-          'Settings:',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 9),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1,
-          ),
-          itemCount: settings.length,
-          itemBuilder: (context, index) {
-            return _buildSettingItem(
-              context,
-              settings[index].icon,
-              settings[index].label,
-              settings[index].page,
-            );
-          },
+        Icon(icon, color: Colors.blue.shade700),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
         ),
       ],
     );
   }
 
-  // Status section widget
-  Widget _buildStatusSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Status:',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 9),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1,
-          ),
-          itemCount: status.length,
-          itemBuilder: (context, index) {
-            return _buildSettingItem(
-              context,
-              status[index].icon,
-              status[index].label,
-              status[index].page,
-            );
-          },
-        ),
-      ],
+  Widget _buildGrid(BuildContext context, List<Widget> tiles) {
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 0.9,
+      children: tiles,
     );
   }
 
-  // Common widget for setting and status items
-  Widget _buildSettingItem(BuildContext context, IconData icon, String label, Function(String) page) {
-    return InkWell(
-      onTap: () {
-        // Use the page function to create an instance and pass the phone number
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => page(device.phoneNumber),
+  Widget _buildTile(BuildContext context, IconData icon, String label, Function(String) pageBuilder) {
+    return Material(
+      color: Colors.blue.shade50,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 2,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => pageBuilder(device.phoneNumber)));
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.blue.shade100,
+                child: Icon(icon, color: Colors.blue.shade700, size: 28),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
-        );
-      },
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.blue.shade100,
-            child: Icon(icon, color: Colors.blue, size: 30),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
-
-// Define settings and status items as data models for clarity and maintainability
 
 class SettingsItem {
   final IconData icon;

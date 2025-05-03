@@ -1,91 +1,149 @@
-//lib/pages/admin
 import 'package:flutter/material.dart';
+import 'package:telephony/telephony.dart';
+import '../controller/sms_controller.dart';
 
-class Alert extends StatelessWidget {
+class AlertPage extends StatefulWidget {
+  final String phoneNumber;
+
+  const AlertPage({required this.phoneNumber, Key? key}) : super(key: key);
+
+  @override
+  _AlertPageState createState() => _AlertPageState();
+}
+
+class _AlertPageState extends State<AlertPage> {
+  final SMSController _smsController = SMSController();
+
+  String selectedAlertType1 = 'Select Alert Type';
+  String selectedAlertType2 = 'Select Alert Type';
+
+  final Map<String, String> alertTypeMap = {
+    'OPEN': 'O',
+    'CLOSE': 'C',
+    'OPEN & CLOSE': 'S',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _smsController.requestPermissions(context);
+    _smsController.startListeningForSMS(context);
+  }
+
+  void _sendSMS() {
+    String predefinedMessage = 'SALT ';
+    String? code1 = alertTypeMap[selectedAlertType1];
+    String? code2 = alertTypeMap[selectedAlertType2];
+
+    if (code1 != null && code2 != null) {
+      predefinedMessage += '$code1$code2';
+
+      _smsController.sendSMS(context, widget.phoneNumber, predefinedMessage);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Message sent: $predefinedMessage')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both alert types')),
+      );
+    }
+  }
+
+  Widget _buildDropdown(String selectedValue, void Function(String?) onChanged, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.blueAccent, width: 1),
+            color: Colors.white,
+          ),
+          child: DropdownButton<String>(
+            value: alertTypeMap.containsKey(selectedValue) ? selectedValue : null,
+            hint: const Text('Select Alert Type'),
+            isExpanded: true,
+            items: alertTypeMap.keys.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            underline: const SizedBox(), // Remove the default underline
+            style: const TextStyle(color: Colors.black, fontSize: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC),
       appBar: AppBar(
-        title: Text('Admin Settings'),
+        title: const Text('Alert Type Setup'),
+        centerTitle: true,
+        elevation: 2,
+        backgroundColor: Colors.blueAccent,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Admin Settings Page',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+      body: Center(
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Set Alert for Admin',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                _buildDropdown(selectedAlertType1, (value) {
+                  setState(() {
+                    selectedAlertType1 = value!;
+                  });
+                }, 'INPUT 1'), // Label changed to INPUT 1
+                const SizedBox(height: 16),
+                _buildDropdown(selectedAlertType2, (value) {
+                  setState(() {
+                    selectedAlertType2 = value!;
+                  });
+                }, 'INPUT 2'), // Label changed to INPUT 2
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _sendSMS,
+                  icon: const Icon(Icons.send),
+                  label: const Text('Alert Type'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Here, you can manage admin-related settings such as system configurations, user management, etc.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // You can add your logic to save settings or perform actions
-                _showConfirmationDialog(context);
-              },
-              child: Text('Save Settings'),
-            ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  // Sample confirmation dialog when saving settings
-  void _showConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirm'),
-          content: Text('Are you sure you want to save the changes?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Implement saving logic here
-                Navigator.of(context).pop(); // Close dialog
-                _showSuccessDialog(context);
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Show success dialog after saving
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Success'),
-          content: Text('Settings have been saved successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

@@ -1,5 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../controller/sms_controller.dart';
+
+// Formatter to allow only digits and at most one leading '+'
+class PhoneNumberPage extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+
+    // Reject input with any whitespace
+    if (text.contains(RegExp(r'\s'))) return oldValue;
+
+    // Allow only digits or a single leading '+'
+    if (RegExp(r'^\+?[0-9]*$').hasMatch(text)) {
+      if (text.indexOf('+') > 0) return oldValue;
+      if (RegExp(r'\+.*\+').hasMatch(text)) return oldValue;
+      return newValue;
+    }
+
+    return oldValue;
+  }
+}
+
+// Formatter to allow only digits in message fields
+class DigitsOnlyFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    return RegExp(r'^[0-9]*$').hasMatch(text) ? newValue : oldValue;
+  }
+}
 
 class PhoneNumberSet extends StatefulWidget {
   final String phoneNumber;
@@ -49,22 +81,24 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     final to = _phoneController.text.trim();
     final additional = controller.text.trim();
 
-    // Validate phone number format
     if (!_isPhoneNumberValid(to)) {
-      _showAlertDialog('Invalid Phone Number', 'Please enter a valid phone number (e.g., +919003042821 or 919003042821).');
+      _showAlertDialog(
+        'Invalid Phone Number',
+        'Please enter a valid phone number (e.g., +919003042821 or 919003042821).',
+      );
       return;
     }
 
     if (additional.isEmpty) {
-      _showAlertDialog('Message is empty', 'Please enter a message before sending.');
+      _showAlertDialog(
+        'Message is empty',
+        'Please enter a message before sending.',
+      );
       return;
     }
 
     final message = '$prefix$additional';
     _smsController.sendSMS(context, to, message);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Sent: $message')),
-    );
   }
 
   void _showAlertDialog(String title, String content) {
@@ -106,9 +140,11 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
             const SizedBox(height: 12),
             TextField(
               controller: type['controller'],
-              maxLines: 2,
+              maxLines: 1,
+              keyboardType: TextInputType.phone, // Fixed here ✅
+              inputFormatters: [PhoneNumberPage()],
               decoration: const InputDecoration(
-                hintText: 'Type your message here...',
+                hintText: 'Enter digits only...',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -143,11 +179,11 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: ListView.builder(
-          itemCount: messageTypes.length,
-          itemBuilder: (context, index) {
-            return _buildMessageCard(messageTypes[index]);
-          },
+        child: ListView(
+          children: [
+            const SizedBox(height: 20),
+            ...messageTypes.map((type) => _buildMessageCard(type)).toList(),
+          ],
         ),
       ),
     );

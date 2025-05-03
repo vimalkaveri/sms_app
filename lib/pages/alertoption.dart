@@ -1,91 +1,76 @@
-//lib/pages/alertoption
 import 'package:flutter/material.dart';
+import '../controller/sms_controller.dart';
 
-class AlertOption extends StatelessWidget {
+class AlertOption extends StatefulWidget {
+  final String phoneNumber;
+
+  const AlertOption({required this.phoneNumber, Key? key}) : super(key: key);
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Settings'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Admin Settings Page',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Here, you can manage admin-related settings such as system configurations, user management, etc.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // You can add your logic to save settings or perform actions
-                _showConfirmationDialog(context);
-              },
-              child: Text('Save Settings'),
-            ),
-          ],
+  _AlertOptionState createState() => _AlertOptionState();
+}
+
+class _AlertOptionState extends State<AlertOption> {
+  final SMSController _smsController = SMSController();
+
+  @override
+  void initState() {
+    super.initState();
+    _smsController.requestPermissions(context);
+    _smsController.startListeningForSMS(context);
+  }
+
+  void _sendSMS(String message) {
+    _smsController.sendSMS(context, widget.phoneNumber, message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Alert command sent: $message')),
+    );
+  }
+
+  Widget _buildAlertCard(String title, String message, IconData icon, Color color) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.15),
+          child: Icon(icon, color: color),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        trailing: ElevatedButton(
+          onPressed: () => _sendSMS(message),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: const Text("Set", style: TextStyle(color: Colors.white)),
         ),
       ),
     );
   }
 
-  // Sample confirmation dialog when saving settings
-  void _showConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirm'),
-          content: Text('Are you sure you want to save the changes?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Implement saving logic here
-                Navigator.of(context).pop(); // Close dialog
-                _showSuccessDialog(context);
-              },
-              child: Text('Save'),
-            ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC),
+      appBar: AppBar(
+        title: const Text('Alert Options'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildAlertCard("Call Only", "SOCS YN", Icons.phone, Colors.green),
+            _buildAlertCard("SMS Only", "SOCS NY", Icons.sms, Colors.orange),
+            _buildAlertCard("Call & SMS", "SOCS YY", Icons.notifications_active, Colors.blue),
+            _buildAlertCard("No Alert", "SOCS NN", Icons.notifications_off, Colors.redAccent),
           ],
-        );
-      },
-    );
-  }
-
-  // Show success dialog after saving
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Success'),
-          content: Text('Settings have been saved successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
+        ),
+      ),
     );
   }
 }

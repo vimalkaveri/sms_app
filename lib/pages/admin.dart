@@ -24,9 +24,7 @@ class _AdminPageState extends State<AdminPage> {
 
   void _sendSMS() {
     _smsController.sendSMS(context, widget.phoneNumber, predefinedMessage);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ADMIN message sent successfully')),
-    );
+
   }
 
   @override

@@ -1,99 +1,135 @@
-//lib/pages/zone_set
 import 'package:flutter/material.dart';
+import '../controller/sms_controller.dart';
 
-class ZoneSet extends StatefulWidget {
+class ZoneSetPage extends StatefulWidget {
+  final String phoneNumber;
+
+  const ZoneSetPage({required this.phoneNumber, Key? key}) : super(key: key);
+
   @override
-  _PhNoPageState createState() => _PhNoPageState();
+  _ZoneSetState createState() => _ZoneSetState();
 }
 
-class _PhNoPageState extends State<ZoneSet> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _phoneController = TextEditingController();
+class _ZoneSetState extends State<ZoneSetPage> {
+  final SMSController _smsController = SMSController();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Phone Number Settings'),
+  void initState() {
+    super.initState();
+    _smsController.requestPermissions(context);
+    _smsController.startListeningForSMS(context);
+  }
+
+  void _sendSMS(String message) {
+    _smsController.sendSMS(context, widget.phoneNumber, message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Command sent')),
+    );
+  }
+
+  Widget _buildActionButton(String label, String message, {IconData? icon}) {
+    return ElevatedButton.icon(
+      onPressed: () => _sendSMS(message),
+      icon: Icon(icon ?? Icons.settings, size: 20),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+    );
+  }
+
+  Widget _buildSectionCard(String title, IconData icon, List<Widget> children) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Phone Number Settings',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Here you can set or update the phone number.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            // Form to input phone number
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'Enter Phone Number',
-                  border: OutlineInputBorder(),
+            Row(
+              children: [
+                Icon(icon, color: Colors.blueAccent),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                 ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a phone number';
-                  }
-                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                    return 'Please enter a valid 10-digit phone number';
-                  }
-                  return null;
-                },
-              ),
+              ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _savePhoneNumber(context);
-                }
-              },
-              child: Text('Save Phone Number'),
-            ),
+            const SizedBox(height: 12),
+            ...children,
           ],
         ),
       ),
     );
   }
 
-  // Save the phone number and show a confirmation dialog
-  void _savePhoneNumber(BuildContext context) {
-    // In a real app, you would save the phone number to your data source (e.g., database, shared preferences)
-
-    String phoneNumber = _phoneController.text;
-
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Phone Number Saved'),
-          content: Text('Your phone number $phoneNumber has been saved successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pop(); // Optionally pop back to the previous screen
-              },
-              child: Text('OK'),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC),
+      appBar: AppBar(
+        title: const Text('Zone Configuration'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildSectionCard(
+              'Activate Zone-All',
+              Icons.lock_open,
+              [
+                _buildActionButton("Activate", "SACTA", icon: Icons.play_arrow),
+              ],
+            ),
+            _buildSectionCard(
+              'Deactivate Zone-All',
+              Icons.lock,
+              [
+                _buildActionButton("Deactivate", "SDATA", icon: Icons.stop),
+              ],
+            ),
+            _buildSectionCard(
+              'Enable Zone',
+              Icons.toggle_on,
+              [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildActionButton("Enable All", "SENBA", icon: Icons.select_all),
+                    _buildActionButton("Zone 1", "SENB 1", icon: Icons.looks_one),
+                    _buildActionButton("Zone 2", "SENB2", icon: Icons.looks_two),
+                  ],
+                ),
+              ],
+            ),
+            _buildSectionCard(
+              'Disable Zone',
+              Icons.toggle_off,
+              [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildActionButton("Disable All", "SDSBA", icon: Icons.cancel),
+                    _buildActionButton("Zone 1", "SDSB 1", icon: Icons.looks_one),
+                    _buildActionButton("Zone 2", "SDSB 2", icon: Icons.looks_two),
+                  ],
+                ),
+              ],
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }

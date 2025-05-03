@@ -25,29 +25,45 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  device == null ? 'ADD DEVICE' : 'EDIT DEVICE',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue),
+                  device == null ? 'Add Device' : 'Edit Device',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _deviceNameController,
-                  decoration: InputDecoration(labelText: 'Device Name'),
+                  decoration: InputDecoration(
+                    labelText: 'Device Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _phoneController,
-                  decoration: InputDecoration(labelText: 'Phone Number'),
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.save),
+                  label: Text(device == null ? 'Add Device' : 'Save Changes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                   onPressed: () {
                     final updatedDeviceName = _deviceNameController.text.trim();
                     final updatedPhoneNumber = _phoneController.text.trim();
+
+                    if (updatedDeviceName.isEmpty || updatedPhoneNumber.isEmpty) return;
 
                     setState(() {
                       if (device == null) {
@@ -61,7 +77,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     _deviceNameController.clear();
                     _phoneController.clear();
                   },
-                  child: Text(device == null ? 'Add Device' : 'Save Changes'),
                 ),
               ],
             ),
@@ -77,48 +92,71 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     });
   }
 
-  // Navigate to DeviceDetailsScreen and pass the device
   void _navigateToDeviceDetails(Device device) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => DeviceDetailsScreen(device: device),
-      ),
+      MaterialPageRoute(builder: (context) => DeviceDetailsScreen(device: device)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Welcome Screen")),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: () => _openDeviceDialog(),
-            child: const Text("Add Device"),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: devices.length,
-              itemBuilder: (context, index) {
-                final device = devices[index];
-                return ListTile(
-                  title: Text(device.deviceName),
-                  subtitle: Text(device.phoneNumber),
-                  leading: const Icon(Icons.message),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _openDeviceDialog(device: device, index: index)),
-                      IconButton(icon: const Icon(Icons.delete), onPressed: () => _deleteDevice(index)),
-                    ],
+      appBar: AppBar(
+        title: const Text("Device Manager"),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade800,
+        elevation: 4,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openDeviceDialog(),
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add),
+      ),
+      body: devices.isEmpty
+          ? const Center(
+        child: Text(
+          "No devices added yet.",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      )
+          : ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: devices.length,
+        itemBuilder: (context, index) {
+          final device = devices[index];
+          return Card(
+            elevation: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              leading: CircleAvatar(
+                backgroundColor: Colors.blue.shade100,
+                child: const Icon(Icons.phone_android, color: Colors.blue),
+              ),
+              title: Text(
+                device.deviceName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(device.phoneNumber),
+              onTap: () => _navigateToDeviceDetails(device),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.orange),
+                    onPressed: () => _openDeviceDialog(device: device, index: index),
                   ),
-                  onTap: () => _navigateToDeviceDetails(device),
-                );
-              },
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteDevice(index),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

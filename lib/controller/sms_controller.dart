@@ -17,7 +17,8 @@ class SMSController {
     ].request();
 
     if (statuses[Permission.sms]!.isGranted && statuses[Permission.phone]!.isGranted) {
-      _showSnackBar(context, "Permissions granted ✅");
+      // Remove the SnackBar message that says "Permissions granted ✅"
+      // _showSnackBar(context, "Permissions granted ✅");
     } else {
       _showPopupStatusDialog(context, "Permission Error", "SMS & Phone permissions are required.");
     }
@@ -95,7 +96,7 @@ class SMSController {
         Navigator.of(context).pop();
       }
       _responseTimeoutTimer?.cancel();
-      _showPopupStatusDialog(context, 'Failed', 'SMS failed to send: $e');
+      _showPopupStatusDialog(context, "Unsupported Android Version", "This feature is only available on Android 12 or above.");
     }
   }
 
@@ -104,7 +105,7 @@ class SMSController {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-         title: const Text('Received SMS'),
+          title: const Text('Received SMS'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

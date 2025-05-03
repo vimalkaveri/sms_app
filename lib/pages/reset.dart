@@ -1,23 +1,17 @@
-//lib/pages/reset
 import 'package:flutter/material.dart';
-import 'package:telephony/telephony.dart';
 import '../controller/sms_controller.dart';
 
-class Reset extends StatefulWidget {
+class ResetPage extends StatefulWidget {
   final String phoneNumber;
 
-  const Reset({required this.phoneNumber, Key? key}) : super(key: key);
+  const ResetPage({required this.phoneNumber, Key? key}) : super(key: key);
 
   @override
   _ResetPageState createState() => _ResetPageState();
 }
 
-class _ResetPageState extends State<Reset> {
+class _ResetPageState extends State<ResetPage> {
   final SMSController _smsController = SMSController();
-  List<SmsMessage> receivedMessages = [];
-
-  // Hardcoded message
-  final String predefinedMessage = 'ADMIN'; // Hardcoded message
 
   @override
   void initState() {
@@ -26,52 +20,73 @@ class _ResetPageState extends State<Reset> {
     _smsController.startListeningForSMS(context);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  void _sendSMS(String message) {
+    _smsController.sendSMS(context, widget.phoneNumber, message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Command sent: $message')),
+    );
   }
 
-  // Sends the hardcoded "ADMIN" message to the phone number passed dynamically
-  void _sendSMS() {
-    final String phoneNumber = widget.phoneNumber;  // Use the phone number passed to the page
-    _smsController.sendSMS(context, phoneNumber, predefinedMessage);
-  }
-
-  Widget _buildMessageTile(SmsMessage message) {
-    return ListTile(
-      leading: const Icon(Icons.sms),
-      title: Text(message.body ?? 'No Content'),
-      subtitle: Text('From: ${message.address ?? ''}'),
+  Widget _buildResetCard(String title, IconData icon, String message, String buttonLabel) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.blueAccent),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => _sendSMS(message),
+              icon: const Icon(Icons.send),
+              label: Text(buttonLabel),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SMS Sender & Receiver')),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
+      backgroundColor: const Color(0xFFF2F6FC),
+      appBar: AppBar(
+        title: const Text('System Reset Options'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            // Button to send the hardcoded "ADMIN" message
-            ElevatedButton.icon(
-              onPressed: _sendSMS,
-              label: const Text('Set Admin'),
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const Text(
-              'Received Messages:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: receivedMessages.length,
-                itemBuilder: (context, index) =>
-                    _buildMessageTile(receivedMessages[index]),
-              ),
-            ),
+            _buildResetCard("Factory Restore", Icons.settings_backup_restore, "SFRT", "Factory Restore"),
+            _buildResetCard("Master Reset", Icons.build, "MRST", "Master Reset"),
+            _buildResetCard("Device Reboot", Icons.restart_alt, "SRST", "Reboot Device"),
           ],
         ),
       ),

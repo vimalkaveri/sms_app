@@ -4,16 +4,16 @@ import 'package:telephony/telephony.dart';
 import '../controller/sms_controller.dart';
 
 
-class Status extends StatefulWidget {
+class StatusPage extends StatefulWidget {
   final String phoneNumber;
 
-  const Status({required this.phoneNumber, Key? key}) : super(key: key);
+  const StatusPage({required this.phoneNumber, Key? key}) : super(key: key);
 
   @override
   _StatusPageState createState() => _StatusPageState();
 }
 
-class _StatusPageState extends State<Status> {
+class _StatusPageState extends State<StatusPage> {
   final SMSController _smsController = SMSController();
   List<SmsMessage> receivedMessages = [];
 

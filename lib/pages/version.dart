@@ -4,16 +4,16 @@ import 'package:telephony/telephony.dart';
 import '../controller/sms_controller.dart';
 
 
-class Version extends StatefulWidget {
+class VersionPage extends StatefulWidget {
   final String phoneNumber;
 
-  const Version({required this.phoneNumber, Key? key}) : super(key: key);
+  const VersionPage({required this.phoneNumber, Key? key}) : super(key: key);
 
   @override
-  _AdminPageState createState() => _AdminPageState();
+  _VersionPageState createState() => _VersionPageState();
 }
 
-class _AdminPageState extends State<Version> {
+class _VersionPageState extends State<VersionPage> {
   late TextEditingController _phoneController;
   final TextEditingController _messageController = TextEditingController();
   List<SmsMessage> receivedMessages = [];

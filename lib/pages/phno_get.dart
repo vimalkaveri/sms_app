@@ -1,91 +1,90 @@
-//lib/pages/phno_get
 import 'package:flutter/material.dart';
+import '../controller/sms_controller.dart';
+import 'package:telephony/telephony.dart'; // Import for SmsMessage
 
-class PhoneNumberGet extends StatelessWidget {
+class PhoneNumberGet extends StatefulWidget {
+  final String phoneNumber;
+
+  const PhoneNumberGet({required this.phoneNumber, Key? key}) : super(key: key);
+
+  @override
+  _PhoneNumberGetState createState() => _PhoneNumberGetState();
+}
+
+class _PhoneNumberGetState extends State<PhoneNumberGet> {
+  late TextEditingController _phoneController;
+  final TextEditingController _messageController = TextEditingController();
+  List<SmsMessage> receivedMessages = [];
+  final SMSController _smsController = SMSController();
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.phoneNumber);
+    _smsController.requestPermissions(context);
+    _smsController.startListeningForSMS(context);
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _sendSMS() {
+    final to = _phoneController.text.trim();
+    final message = _messageController.text.trim();
+    _smsController.sendSMS(context, to, message);
+  }
+
+  Widget _buildMessageTile(SmsMessage message) {
+    return ListTile(
+      leading: const Icon(Icons.sms),
+      title: Text(message.body ?? 'No Content'),
+      subtitle: Text('From: ${message.address ?? ''}'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Settings'),
-      ),
+      appBar: AppBar(title: const Text('SMS Sender & Receiver')),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Admin Settings Page',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            const SizedBox(height: 10),
+            TextField(
+              controller: _messageController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Message',
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Here, you can manage admin-related settings such as system configurations, user management, etc.',
-              style: TextStyle(fontSize: 16),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _sendSMS,
+              icon: const Icon(Icons.send),
+              label: const Text('Send SMS'),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // You can add your logic to save settings or perform actions
-                _showConfirmationDialog(context);
-              },
-              child: Text('Save Settings'),
+            const Divider(),
+            const Text(
+              'Received Messages:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: receivedMessages.length,
+                itemBuilder: (context, index) =>
+                    _buildMessageTile(receivedMessages[index]),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // Sample confirmation dialog when saving settings
-  void _showConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirm'),
-          content: Text('Are you sure you want to save the changes?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Implement saving logic here
-                Navigator.of(context).pop(); // Close dialog
-                _showSuccessDialog(context);
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Show success dialog after saving
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Success'),
-          content: Text('Settings have been saved successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
