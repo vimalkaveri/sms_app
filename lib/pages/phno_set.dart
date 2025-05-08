@@ -77,10 +77,12 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     return phoneRegExp.hasMatch(phoneNumber);
   }
 
+  // Send SMS function with validation
   void _sendSMS(String prefix, TextEditingController controller) {
     final to = _phoneController.text.trim();
     final additional = controller.text.trim();
 
+    // Validate phone number
     if (!_isPhoneNumberValid(to)) {
       _showAlertDialog(
         'Invalid Phone Number',
@@ -89,15 +91,8 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
       return;
     }
 
-    if (additional.isEmpty) {
-      _showAlertDialog(
-        'Message is empty',
-        'Please enter a message before sending.',
-      );
-      return;
-    }
-
-    final message = '$prefix$additional';
+    // If the message is empty, we do not show the alert and send it anyway.
+    final message = '$prefix$additional';  // Message can be empty here
     _smsController.sendSMS(context, to, message);
   }
 
@@ -117,6 +112,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     );
   }
 
+  // Create message card widget
   Widget _buildMessageCard(Map<String, dynamic> type) {
     return Card(
       elevation: 4,
@@ -141,7 +137,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
             TextField(
               controller: type['controller'],
               maxLines: 1,
-              keyboardType: TextInputType.phone, // Fixed here ✅
+              keyboardType: TextInputType.phone,
               inputFormatters: [PhoneNumberPage()],
               decoration: const InputDecoration(
                 hintText: 'Enter digits only...',

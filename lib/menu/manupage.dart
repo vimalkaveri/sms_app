@@ -20,6 +20,8 @@ class DeviceDetailsScreen extends StatelessWidget {
 
   DeviceDetailsScreen({required this.device, Key? key}) : super(key: key);
 
+  final MaterialColor _primarySwatch = Colors.blue;
+
   final List<SettingsItem> settings = [
     SettingsItem(icon: Icons.admin_panel_settings, label: 'Admin', page: (p) => AdminPage(phoneNumber: p)),
     SettingsItem(icon: Icons.phone, label: 'Ph No.', page: (p) => PhoneNumberSet(phoneNumber: p)),
@@ -45,7 +47,7 @@ class DeviceDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         title: _buildTitle(),
         centerTitle: true,
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: _primarySwatch.shade700,
         elevation: 4,
       ),
       body: SingleChildScrollView(
@@ -79,11 +81,11 @@ class DeviceDetailsScreen extends StatelessWidget {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, color: Colors.blue.shade700),
+        Icon(icon, color: _primarySwatch.shade700),
         const SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primarySwatch.shade700),
         ),
       ],
     );
@@ -103,7 +105,7 @@ class DeviceDetailsScreen extends StatelessWidget {
 
   Widget _buildTile(BuildContext context, IconData icon, String label, Function(String) pageBuilder) {
     return Material(
-      color: Colors.blue.shade50,
+      color: _primarySwatch.shade50,
       borderRadius: BorderRadius.circular(16),
       elevation: 2,
       child: InkWell(
@@ -118,8 +120,8 @@ class DeviceDetailsScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: Colors.blue.shade100,
-                child: Icon(icon, color: Colors.blue.shade700, size: 28),
+                backgroundColor: _primarySwatch.shade100,
+                child: Icon(icon, color: _primarySwatch.shade700, size: 28),
               ),
               const SizedBox(height: 10),
               Text(

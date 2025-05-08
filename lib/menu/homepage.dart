@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/device.dart';
 import 'manupage.dart';
 
@@ -14,6 +16,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final _phoneController = TextEditingController();
 
   List<Device> devices = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDevices();  // Load the saved devices when the app starts
+  }
+
+  // Method to load devices from SharedPreferences
+  Future<void> _loadDevices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? devicesJson = prefs.getString('devices');
+    if (devicesJson != null) {
+      List<dynamic> decodedDevices = json.decode(devicesJson);
+      setState(() {
+        devices = decodedDevices.map((e) => Device.fromJson(e)).toList();
+      });
+    }
+  }
+
+  // Method to save devices to SharedPreferences
+  Future<void> _saveDevices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String devicesJson = json.encode(devices.map((e) => e.toJson()).toList());
+    prefs.setString('devices', devicesJson);
+  }
 
   void _openDeviceDialog({Device? device, int? index}) {
     _deviceNameController.text = device?.deviceName ?? '';
@@ -73,6 +100,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       }
                     });
 
+                    _saveDevices();  // Save devices list to SharedPreferences
                     Navigator.pop(context);
                     _deviceNameController.clear();
                     _phoneController.clear();
@@ -90,6 +118,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() {
       devices.removeAt(index);
     });
+    _saveDevices();  // Save updated devices list to SharedPreferences
   }
 
   void _navigateToDeviceDetails(Device device) {

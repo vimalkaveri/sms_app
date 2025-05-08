@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../controller/sms_controller.dart';
+import 'package:telephony/telephony.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class VoiceRecordPage extends StatefulWidget {
   final String phoneNumber;
@@ -11,19 +12,64 @@ class VoiceRecordPage extends StatefulWidget {
 }
 
 class _VoiceRecordPageState extends State<VoiceRecordPage> {
-  final SMSController _smsController = SMSController();
+  final Telephony telephony = Telephony.instance;
 
   @override
   void initState() {
     super.initState();
-    _smsController.requestPermissions(context);
-    // Removed startListeningForSMS as it's not needed for this feature
+    requestPermissions(context);
   }
 
-  void _sendSMS(String message) {
-    _smsController.sendSMS(context, widget.phoneNumber, message);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please wait for the call...')),
+  Future<void> requestPermissions(BuildContext context) async {
+    final statuses = await [
+      Permission.sms,
+      Permission.phone,
+    ].request();
+
+    if (!(statuses[Permission.sms]?.isGranted ?? false) ||
+        !(statuses[Permission.phone]?.isGranted ?? false)) {
+      _showPopupStatusDialog(context, "Permission Error", "SMS & Phone permissions are required.");
+    }
+  }
+
+  void sendSMS(BuildContext context, String phoneNumber, String message) async {
+    if (phoneNumber.isEmpty || message.isEmpty) {
+      _showPopupStatusDialog(context, 'Validation Error', 'Enter both phone number and message');
+      return;
+    }
+
+    final permission = await Permission.sms.status;
+    if (!permission.isGranted) {
+      final result = await Permission.sms.request();
+      if (!result.isGranted) {
+        _showPopupStatusDialog(context, 'Permission Denied', 'SMS permission not granted');
+        return;
+      }
+    }
+
+    try {
+      await telephony.sendSms(to: phoneNumber, message: message);
+      _showPopupStatusDialog(context, 'Wait for Call', 'SMS sent. Please wait for the call.');
+    } catch (e) {
+      _showPopupStatusDialog(context, "Error", "Failed to send SMS.");
+    }
+  }
+
+  void _showPopupStatusDialog(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -43,7 +89,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         trailing: ElevatedButton.icon(
-          onPressed: () => _sendSMS(message),
+          onPressed: () => sendSMS(context, widget.phoneNumber, message),
           icon: const Icon(Icons.call),
           label: const Text("Send"),
           style: ElevatedButton.styleFrom(
@@ -69,8 +115,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
         child: Column(
           children: [
             _buildVoiceCard("Set Voice Message 1", "VREC 1", Icons.mic, Colors.teal),
-            _buildVoiceCard("Set Voice Message 2", "VREC 2", Icons.mic, Colors.teal),
-            //_buildVoiceCard("Set Voice Message 2", "VREC 2", Icons.mic_none, Colors.teal),
+            _buildVoiceCard("Set Voice Message 2", "VREC 2", Icons.mic_none, Colors.teal),
           ],
         ),
       ),

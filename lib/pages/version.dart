@@ -1,8 +1,10 @@
-//lib/pages/version
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:telephony/telephony.dart';
-import '../controller/sms_controller.dart';
-
+import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VersionPage extends StatefulWidget {
   final String phoneNumber;
@@ -10,78 +12,263 @@ class VersionPage extends StatefulWidget {
   const VersionPage({required this.phoneNumber, Key? key}) : super(key: key);
 
   @override
-  _VersionPageState createState() => _VersionPageState();
+  State<VersionPage> createState() => _VersionPageState();
 }
 
 class _VersionPageState extends State<VersionPage> {
-  late TextEditingController _phoneController;
-  final TextEditingController _messageController = TextEditingController();
-  List<SmsMessage> receivedMessages = [];
-  final SMSController _smsController = SMSController();
+  final Telephony _telephony = Telephony.instance;
+  final TextEditingController _phoneController = TextEditingController();
+  final ValueNotifier<Map<String, dynamic>> _latestMessage = ValueNotifier({
+    'message': {},
+    'timestamp': 0,
+  });
+  final ValueNotifier<bool> _responseReceived = ValueNotifier(false);
+
+  Timer? _timeoutTimer;
+  String? _lastSentNumber;
 
   @override
   void initState() {
     super.initState();
-    _phoneController = TextEditingController(text: widget.phoneNumber);
-    _smsController.requestPermissions(context);
-    _smsController.startListeningForSMS(context);
+    _phoneController.text = widget.phoneNumber;
+    _requestPermissions();
+    _listenToIncomingSMS();
+    _loadLatestMessage();
+  }
+
+  Future<void> _requestPermissions() async {
+    final statuses = await [
+      Permission.sms,
+      Permission.phone,
+    ].request();
+
+    if (!statuses[Permission.sms]!.isGranted || !statuses[Permission.phone]!.isGranted) {
+      _showDialog("Permission Error", "SMS & Phone permissions are required.");
+    }
+  }
+
+  void _listenToIncomingSMS() {
+    _telephony.listenIncomingSms(
+      onNewMessage: (SmsMessage message) {
+        final sender = message.address?.replaceAll(RegExp(r'\D'), '');
+        final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
+
+        if (!_responseReceived.value &&
+            sender != null &&
+            expected != null &&
+            sender.endsWith(expected)) {
+          _responseReceived.value = true;
+          _timeoutTimer?.cancel();
+          if (Navigator.canPop(context)) Navigator.of(context).pop();
+        }
+
+        final body = message.body?.trim() ?? '';
+
+        if (body.startsWith("GV:")) {
+          final content = body.replaceFirst("GV:", "").trim();
+          final lines = content.split('\n').map((e) => e.trim()).toList();
+
+          String version = '';
+          String imei = '';
+          String gsm = '';
+
+          for (var line in lines) {
+            print("Line: $line");  // Debugging line
+
+            if (line.startsWith("NANO")) {
+              final versionLine = line.replaceFirst("NANO", "").trim();
+              final versionMatch = RegExp(r"VER:\s*([0-9.]+)").firstMatch(versionLine);
+              if (versionMatch != null) {
+                version = versionMatch.group(1) ?? '';
+              }
+            } else if (line.startsWith("IMEI")) {
+              imei = line.replaceFirst("IMEI:", "").trim();
+            } else if (line.startsWith("GSM")) {
+              gsm = line.replaceFirst("GSM:", "").trim();
+            }
+          }
+
+          print("Version: $version, IMEI: $imei, GSM: $gsm"); // Debugging output
+
+          final structuredMessage = {
+            'VERSION': version,
+            'IMEI': imei,
+            'GSM': gsm,
+          };
+
+          final timestamp = message.date ?? DateTime.now().millisecondsSinceEpoch;
+
+          _latestMessage.value = {
+            'message': structuredMessage,
+            'timestamp': timestamp,
+          };
+
+          _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
+        }
+      },
+      listenInBackground: false,
+    );
+  }
+
+  Future<void> _saveLatestMessage(String message, int timestamp) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keyPrefix = widget.phoneNumber;
+    await prefs.setString('message_${keyPrefix}_version', message);
+    await prefs.setInt('message_${keyPrefix}_timestamp', timestamp);
+  }
+
+  Future<void> _loadLatestMessage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keyPrefix = widget.phoneNumber;
+    final messageJson = prefs.getString('message_${keyPrefix}_version');
+    final timestamp = prefs.getInt('message_${keyPrefix}_timestamp') ?? 0;
+
+    if (messageJson != null) {
+      final structuredMessage = jsonDecode(messageJson);
+      _latestMessage.value = {
+        'message': structuredMessage,
+        'timestamp': timestamp,
+      };
+    }
+  }
+
+  Future<void> _sendSMS() async {
+    final phoneNumber = _phoneController.text.trim();
+    const fixedMessage = "GVER"; // Changed message to "GVER"
+
+    if (phoneNumber.isEmpty) {
+      _showDialog("Validation Error", "Phone number is required.");
+      return;
+    }
+
+    if (!await Permission.sms.isGranted) {
+      if (!await Permission.sms.request().isGranted) {
+        _showDialog("Permission Denied", "SMS permission not granted.");
+        return;
+      }
+    }
+
+    _lastSentNumber = phoneNumber;
+    _responseReceived.value = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Waiting for reply...'),
+          ],
+        ),
+      ),
+    );
+
+    _timeoutTimer = Timer(const Duration(seconds: 60), () {
+      if (!_responseReceived.value && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+        _showDialog("No Response", "Please try again later.");
+      }
+    });
+
+    try {
+      await _telephony.sendSms(to: phoneNumber, message: fixedMessage);
+    } catch (e) {
+      if (Navigator.canPop(context)) Navigator.of(context).pop();
+      _timeoutTimer?.cancel();
+      _showDialog("Error", "SMS failed to send: ${e.toString()}");
+    }
+  }
+
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("OK")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageCard(Map<String, dynamic> messageData, String formattedDate) {
+    final message = messageData['message'];
+    if (message is! Map<String, dynamic>) {
+      return const Center(child: Text("Invalid message format"));
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Structured Status Message\n$formattedDate", style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            _buildStatusRow("Version", message['VERSION']),
+            _buildStatusRow("IMEI", message['IMEI']),
+            _buildStatusRow("GSM", message['GSM']),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("$label:", style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(value ?? 'N/A', style: const TextStyle(color: Colors.blueGrey)),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _timeoutTimer?.cancel();
     _phoneController.dispose();
-    _messageController.dispose();
     super.dispose();
-  }
-
-  void _sendSMS() {
-    final to = _phoneController.text.trim();
-    final message = _messageController.text.trim();
-    _smsController.sendSMS(context, to, message);
-  }
-
-  Widget _buildMessageTile(SmsMessage message) {
-    return ListTile(
-      leading: const Icon(Icons.sms),
-      title: Text(message.body ?? 'No Content'),
-      subtitle: Text('From: ${message.address ?? ''}'),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SMS Sender & Receiver')),
+      appBar: AppBar(title: const Text("Structured SMS Reader")),
       body: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            TextField(
-              controller: _messageController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Message',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: _sendSMS,
               icon: const Icon(Icons.send),
-              label: const Text('Send SMS'),
+              label: const Text("Send SMS Request"),
             ),
             const SizedBox(height: 20),
-            const Divider(),
-            const Text(
-              'Received Messages:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
             Expanded(
-              child: ListView.builder(
-                itemCount: receivedMessages.length,
-                itemBuilder: (context, index) =>
-                    _buildMessageTile(receivedMessages[index]),
+              child: ValueListenableBuilder<Map<String, dynamic>>(
+                valueListenable: _latestMessage,
+                builder: (context, data, _) {
+                  final timestamp = data['timestamp'] ?? 0;
+                  final formattedDate = timestamp != 0
+                      ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(timestamp))
+                      : 'Unknown';
+
+                  if ((data['message'] as Map).isEmpty) {
+                    return const Center(child: Text("No structured message received yet."));
+                  }
+
+                  return _buildMessageCard(data, formattedDate);
+                },
               ),
             ),
           ],
