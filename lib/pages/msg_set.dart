@@ -124,7 +124,7 @@ class _MessageSetState extends State<MessageSet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Advanced SMS Sender'),
+        title: const Text('Set Alert SMS'),
         backgroundColor: Colors.blue.shade700,
         centerTitle: true,
       ),

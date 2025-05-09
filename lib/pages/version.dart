@@ -243,7 +243,7 @@ class _VersionPageState extends State<VersionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Structured SMS Reader")),
+      appBar: AppBar(title: const Text("Version")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

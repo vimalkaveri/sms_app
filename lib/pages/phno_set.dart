@@ -2,34 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controller/sms_controller.dart';
 
-// Formatter to allow only digits and at most one leading '+'
-class PhoneNumberPage extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    final text = newValue.text;
-
-    // Reject input with any whitespace
-    if (text.contains(RegExp(r'\s'))) return oldValue;
-
-    // Allow only digits or a single leading '+'
-    if (RegExp(r'^\+?[0-9]*$').hasMatch(text)) {
-      if (text.indexOf('+') > 0) return oldValue;
-      if (RegExp(r'\+.*\+').hasMatch(text)) return oldValue;
-      return newValue;
-    }
-
-    return oldValue;
-  }
-}
-
-// Formatter to allow only digits in message fields
+// Formatter to allow only digits or '+'
 class DigitsOnlyFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text;
-    return RegExp(r'^[0-9]*$').hasMatch(text) ? newValue : oldValue;
+    return RegExp(r'^[0-9+]*$').hasMatch(text) ? newValue : oldValue;
   }
 }
 
@@ -48,12 +27,13 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
 
   final List<Map<String, dynamic>> messageTypes = List.generate(20, (index) {
     return {
-      'label': 'Phone Number ${index + 1}',
+      'label': '${index + 1}',
       'prefix': 'SPHO${index + 1} ',
       'controller': TextEditingController(),
-      'icon': Icons.sms_outlined,
     };
   });
+
+  bool _isEditingFirst = false;
 
   @override
   void initState() {
@@ -77,12 +57,10 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     return phoneRegExp.hasMatch(phoneNumber);
   }
 
-  // Send SMS function with validation
   void _sendSMS(String prefix, TextEditingController controller) {
     final to = _phoneController.text.trim();
     final additional = controller.text.trim();
 
-    // Validate phone number
     if (!_isPhoneNumberValid(to)) {
       _showAlertDialog(
         'Invalid Phone Number',
@@ -91,8 +69,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
       return;
     }
 
-    // If the message is empty, we do not show the alert and send it anyway.
-    final message = '$prefix$additional';  // Message can be empty here
+    final message = '$prefix$additional';
     _smsController.sendSMS(context, to, message);
   }
 
@@ -112,52 +89,77 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     );
   }
 
-  // Create message card widget
-  Widget _buildMessageCard(Map<String, dynamic> type) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(type['icon'], color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  '${type['label']} ',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  Widget _buildMessageRow(Map<String, dynamic> type) {
+    final isFirst = type['label'] == '1';
+
+    if (isFirst && !_isEditingFirst) {
+      return GestureDetector(
+        onTap: () {
+          setState(() {
+            _isEditingFirst = true;
+          });
+        },
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          elevation: 5,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: Colors.blue.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: Text(
+                'Want To Change Admin?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: type['controller'],
-              maxLines: 1,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [PhoneNumberPage()],
-              decoration: const InputDecoration(
-                hintText: 'Enter digits only...',
-                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () => _sendSMS(type['prefix'], type['controller']),
-                icon: const Icon(Icons.send),
-                label: const Text('Send'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${type['label']}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TextField(
+                  controller: type['controller'],
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [DigitsOnlyFormatter()],
+                  decoration: InputDecoration(
+                    hintText: isFirst
+                        ? 'Enter new admin number...'
+                        : 'Enter digits only...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Colors.blue.shade300,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                   ),
                 ),
               ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.send, color: Colors.blue),
+              onPressed: () => _sendSMS(type['prefix'], type['controller']),
             ),
           ],
         ),
@@ -169,7 +171,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Advanced SMS Sender'),
+        title: const Text('Set Phone Number'),
         backgroundColor: Colors.blue.shade800,
         centerTitle: true,
       ),
@@ -177,8 +179,11 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            const SizedBox(height: 20),
-            ...messageTypes.map((type) => _buildMessageCard(type)).toList(),
+            const SizedBox(height: 10),
+            ...messageTypes.map((type) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: _buildMessageRow(type),
+            )),
           ],
         ),
       ),

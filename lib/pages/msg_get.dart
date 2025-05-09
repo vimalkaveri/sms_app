@@ -231,7 +231,7 @@ class _MessageGetState extends State<MessageGet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Structured SMS Reader")),
+      appBar: AppBar(title: const Text("Alert Message")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

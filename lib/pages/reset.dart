@@ -76,7 +76,7 @@ class _ResetPageState extends State<ResetPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F6FC),
       appBar: AppBar(
-        title: const Text('System Reset Options'),
+        title: const Text('Reset Options'),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),

@@ -240,7 +240,7 @@ class _StatusPageState extends State<StatusPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Structured SMS Reader")),
+      appBar: AppBar(title: const Text("Device Status")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
