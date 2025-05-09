@@ -2,28 +2,26 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/device.dart';
-import 'manupage.dart';
+import 'manupage.dart'; // if this is the device details page
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+class DeviceManagerScreen extends StatefulWidget {
+  const DeviceManagerScreen({super.key});
 
   @override
-  _WelcomeScreenState createState() => _WelcomeScreenState();
+  _DeviceManagerScreenState createState() => _DeviceManagerScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
   final _deviceNameController = TextEditingController();
   final _phoneController = TextEditingController();
-
   List<Device> devices = [];
 
   @override
   void initState() {
     super.initState();
-    _loadDevices();  // Load the saved devices when the app starts
+    _loadDevices();
   }
 
-  // Method to load devices from SharedPreferences
   Future<void> _loadDevices() async {
     final prefs = await SharedPreferences.getInstance();
     final String? devicesJson = prefs.getString('devices');
@@ -35,7 +33,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
   }
 
-  // Method to save devices to SharedPreferences
   Future<void> _saveDevices() async {
     final prefs = await SharedPreferences.getInstance();
     final String devicesJson = json.encode(devices.map((e) => e.toJson()).toList());
@@ -100,7 +97,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       }
                     });
 
-                    _saveDevices();  // Save devices list to SharedPreferences
+                    _saveDevices();
                     Navigator.pop(context);
                     _deviceNameController.clear();
                     _phoneController.clear();
@@ -118,7 +115,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() {
       devices.removeAt(index);
     });
-    _saveDevices();  // Save updated devices list to SharedPreferences
+    _saveDevices();
   }
 
   void _navigateToDeviceDetails(Device device) {
