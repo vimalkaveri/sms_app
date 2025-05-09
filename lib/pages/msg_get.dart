@@ -49,7 +49,9 @@ class _MessageGetState extends State<MessageGet> {
 
   void _listenToIncomingSMS() {
     _telephony.listenIncomingSms(
-      onNewMessage: (SmsMessage message) {
+      onNewMessage: (SmsMessage message) async {
+        print("📩 Incoming SMS: ${message.body}");
+
         final sender = message.address?.replaceAll(RegExp(r'\D'), '');
         final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
 
@@ -64,18 +66,18 @@ class _MessageGetState extends State<MessageGet> {
 
         final body = message.body?.trim() ?? '';
 
-        if (body.startsWith("MR:")) {
-          final content = body.replaceFirst("MR:", "").trim();
+        if (body.toUpperCase().startsWith("MR:")) {
+          final content = body.substring(3).trim();
           final lines = content.split('\n').map((e) => e.trim()).toList();
 
           String m1Alert = '';
           String m2Alert = '';
 
           for (var line in lines) {
-            if (line.startsWith("M1-")) {
-              m1Alert = line.replaceFirst("M1-", "").trim();
-            } else if (line.startsWith("M2-")) {
-              m2Alert = line.replaceFirst("M2-", "").trim();
+            if (line.toUpperCase().startsWith("M1-")) {
+              m1Alert = line.substring(3).trim();
+            } else if (line.toUpperCase().startsWith("M2-")) {
+              m2Alert = line.substring(3).trim();
             }
           }
 
@@ -86,13 +88,16 @@ class _MessageGetState extends State<MessageGet> {
 
           final timestamp = message.date ?? DateTime.now().millisecondsSinceEpoch;
 
-          // Update ValueNotifier with new message data
           _latestMessage.value = {
             'message': structuredMessage,
             'timestamp': timestamp,
           };
 
-          _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
+          print("✅ Parsed Message: $structuredMessage at $timestamp");
+
+          await _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
+        } else {
+          print("❌ Message does not start with 'MR:'");
         }
       },
       listenInBackground: false,
@@ -102,15 +107,18 @@ class _MessageGetState extends State<MessageGet> {
   Future<void> _saveLatestMessage(String message, int timestamp) async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    await prefs.setString('message_${keyPrefix}_message', message);
-    await prefs.setInt('message_${keyPrefix}_timestamp', timestamp);
+
+    bool msgSaved = await prefs.setString('message_${keyPrefix}_message', message);
+    bool timeSaved = await prefs.setInt('message_${keyPrefix}_message_time', timestamp);
+
+    print("💾 Saved message: $msgSaved, timestamp: $timeSaved");
   }
 
   Future<void> _loadLatestMessage() async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
     final messageJson = prefs.getString('message_${keyPrefix}_message');
-    final timestamp = prefs.getInt('message_${keyPrefix}_timestamp') ?? 0;
+    final timestamp = prefs.getInt('message_${keyPrefix}_message_time') ?? 0;
 
     if (messageJson != null) {
       final structuredMessage = jsonDecode(messageJson);
@@ -118,12 +126,15 @@ class _MessageGetState extends State<MessageGet> {
         'message': structuredMessage,
         'timestamp': timestamp,
       };
+      print("📦 Loaded saved message: $structuredMessage");
+    } else {
+      print("📭 No saved message found");
     }
   }
 
   Future<void> _sendSMS() async {
     final phoneNumber = _phoneController.text.trim();
-    const fixedMessage = "SMSG"; // Changed message to "SMSG"
+    const fixedMessage = "SMSG";
 
     if (phoneNumber.isEmpty) {
       _showDialog("Validation Error", "Phone number is required.");
@@ -163,6 +174,7 @@ class _MessageGetState extends State<MessageGet> {
 
     try {
       await _telephony.sendSms(to: phoneNumber, message: fixedMessage);
+      print("📤 SMS sent to $phoneNumber");
     } catch (e) {
       if (Navigator.canPop(context)) Navigator.of(context).pop();
       _timeoutTimer?.cancel();
@@ -200,8 +212,8 @@ class _MessageGetState extends State<MessageGet> {
           children: [
             Text("Structured Status Message\n$formattedDate", style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            _buildStatusRow("M1 Alert", message['M1_ALERT']), // Change key here
-            _buildStatusRow("M2 Alert", message['M2_ALERT']), // Change key here
+            _buildStatusRow("M1 Alert", message['M1_ALERT']),
+            _buildStatusRow("M2 Alert", message['M2_ALERT']),
           ],
         ),
       ),
@@ -239,7 +251,7 @@ class _MessageGetState extends State<MessageGet> {
             ElevatedButton.icon(
               onPressed: _sendSMS,
               icon: const Icon(Icons.send),
-              label: const Text("Send SMS Request"),
+              label: const Text("Get Message"),
             ),
             const SizedBox(height: 20),
             Expanded(

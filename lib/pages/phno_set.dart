@@ -8,9 +8,20 @@ class DigitsOnlyFormatter extends TextInputFormatter {
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text;
+
+    // Allow only digits or a single '+' at the start.
+    // If the text starts with '+' and has more than one, reject the input.
+    if (text.startsWith('+')) {
+      if (text.substring(1).contains('+')) {
+        return oldValue; // Reject if there's more than one '+' anywhere.
+      }
+    }
+
+    // Allow the rest to be digits after the initial '+'
     return RegExp(r'^[0-9+]*$').hasMatch(text) ? newValue : oldValue;
   }
 }
+
 
 class PhoneNumberSet extends StatefulWidget {
   final String phoneNumber;

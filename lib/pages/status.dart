@@ -63,6 +63,7 @@ class _StatusPageState extends State<StatusPage> {
         }
 
         final body = message.body?.trim() ?? '';
+        debugPrint("Received SMS body: $body");
 
         if (body.startsWith("ST:")) {
           final content = body.replaceFirst("ST:", "").trim();
@@ -99,6 +100,8 @@ class _StatusPageState extends State<StatusPage> {
             'timestamp': timestamp,
           };
 
+          debugPrint("Parsed message: $structuredMessage");
+
           _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
         }
       },
@@ -109,15 +112,22 @@ class _StatusPageState extends State<StatusPage> {
   Future<void> _saveLatestMessage(String message, int timestamp) async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    await prefs.setString('message_${keyPrefix}_status', message);
-    await prefs.setInt('message_${keyPrefix}_timestamp', timestamp);
+    final msgKey = 'message_${keyPrefix}_status';
+    final timeKey = 'message_${keyPrefix}_status_time';
+
+    await prefs.setString(msgKey, message);
+    await prefs.setInt(timeKey, timestamp);
+
   }
 
   Future<void> _loadLatestMessage() async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    final messageJson = prefs.getString('message_${keyPrefix}_status');
-    final timestamp = prefs.getInt('message_${keyPrefix}_timestamp') ?? 0;
+    final msgKey = 'message_${keyPrefix}_status';
+    final timeKey = 'message_${keyPrefix}_status_time';
+
+    final messageJson = prefs.getString(msgKey);
+    final timestamp = prefs.getInt(timeKey) ?? 0;
 
     if (messageJson != null) {
       final structuredMessage = jsonDecode(messageJson);
@@ -248,7 +258,7 @@ class _StatusPageState extends State<StatusPage> {
             ElevatedButton.icon(
               onPressed: _sendSMS,
               icon: const Icon(Icons.send),
-              label: const Text("Send SMS Request"),
+              label: const Text("Get Status"),
             ),
             const SizedBox(height: 20),
             Expanded(

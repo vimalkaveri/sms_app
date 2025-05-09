@@ -44,19 +44,25 @@ class _VersionPageState extends State<VersionPage> {
 
     if (!statuses[Permission.sms]!.isGranted || !statuses[Permission.phone]!.isGranted) {
       _showDialog("Permission Error", "SMS & Phone permissions are required.");
+    } else {
+      print("Permissions granted: SMS and Phone");
     }
   }
 
   void _listenToIncomingSMS() {
     _telephony.listenIncomingSms(
       onNewMessage: (SmsMessage message) {
+        print("Incoming SMS: ${message.body}");
         final sender = message.address?.replaceAll(RegExp(r'\D'), '');
         final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
+
+        print("Sender: $sender | Expected: $expected");
 
         if (!_responseReceived.value &&
             sender != null &&
             expected != null &&
             sender.endsWith(expected)) {
+          print("Response matched. Closing dialog.");
           _responseReceived.value = true;
           _timeoutTimer?.cancel();
           if (Navigator.canPop(context)) Navigator.of(context).pop();
@@ -65,6 +71,7 @@ class _VersionPageState extends State<VersionPage> {
         final body = message.body?.trim() ?? '';
 
         if (body.startsWith("GV:")) {
+          print("GV message detected.");
           final content = body.replaceFirst("GV:", "").trim();
           final lines = content.split('\n').map((e) => e.trim()).toList();
 
@@ -73,7 +80,7 @@ class _VersionPageState extends State<VersionPage> {
           String gsm = '';
 
           for (var line in lines) {
-            print("Line: $line");  // Debugging line
+            print("Line: $line");
 
             if (line.startsWith("NANO")) {
               final versionLine = line.replaceFirst("NANO", "").trim();
@@ -88,7 +95,7 @@ class _VersionPageState extends State<VersionPage> {
             }
           }
 
-          print("Version: $version, IMEI: $imei, GSM: $gsm"); // Debugging output
+          print("Extracted Data => Version: $version | IMEI: $imei | GSM: $gsm");
 
           final structuredMessage = {
             'VERSION': version,
@@ -104,6 +111,8 @@ class _VersionPageState extends State<VersionPage> {
           };
 
           _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
+        } else {
+          print("SMS did not start with 'GV:', skipping...");
         }
       },
       listenInBackground: false,
@@ -113,15 +122,27 @@ class _VersionPageState extends State<VersionPage> {
   Future<void> _saveLatestMessage(String message, int timestamp) async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    await prefs.setString('message_${keyPrefix}_version', message);
-    await prefs.setInt('message_${keyPrefix}_timestamp', timestamp);
+    print("Saving to SharedPreferences with prefix: $keyPrefix");
+
+    final msgKey = 'message_${keyPrefix}_version';
+    final timeKey = 'message_${keyPrefix}_version_time';
+
+    bool msgSaved = await prefs.setString(msgKey, message);
+    bool timeSaved = await prefs.setInt(timeKey, timestamp);
+
+    print("Message saved: $msgSaved | Timestamp saved: $timeSaved");
   }
 
   Future<void> _loadLatestMessage() async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    final messageJson = prefs.getString('message_${keyPrefix}_version');
-    final timestamp = prefs.getInt('message_${keyPrefix}_timestamp') ?? 0;
+    final msgKey = 'message_${keyPrefix}_version';
+    final timeKey = 'message_${keyPrefix}_version_time';
+
+    final messageJson = prefs.getString(msgKey);
+    final timestamp = prefs.getInt(timeKey) ?? 0;
+
+    print("Loaded from SharedPreferences: $messageJson at $timestamp");
 
     if (messageJson != null) {
       final structuredMessage = jsonDecode(messageJson);
@@ -134,7 +155,7 @@ class _VersionPageState extends State<VersionPage> {
 
   Future<void> _sendSMS() async {
     final phoneNumber = _phoneController.text.trim();
-    const fixedMessage = "GVER"; // Changed message to "GVER"
+    const fixedMessage = "GVER";
 
     if (phoneNumber.isEmpty) {
       _showDialog("Validation Error", "Phone number is required.");
@@ -173,6 +194,7 @@ class _VersionPageState extends State<VersionPage> {
     });
 
     try {
+      print("Sending SMS to $phoneNumber");
       await _telephony.sendSms(to: phoneNumber, message: fixedMessage);
     } catch (e) {
       if (Navigator.canPop(context)) Navigator.of(context).pop();
@@ -251,7 +273,7 @@ class _VersionPageState extends State<VersionPage> {
             ElevatedButton.icon(
               onPressed: _sendSMS,
               icon: const Icon(Icons.send),
-              label: const Text("Send SMS Request"),
+              label: const Text("Get Version"),
             ),
             const SizedBox(height: 20),
             Expanded(
