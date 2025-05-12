@@ -58,7 +58,7 @@ class _AlertOptionState extends State<AlertOption> {
       appBar: AppBar(
         title: const Text('Alert Options'),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        //backgroundColor: Colors.blueAccent,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

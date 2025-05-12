@@ -82,7 +82,7 @@ class _MessageSetState extends State<MessageSet> {
                 Icon(icon, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
-                  '$label ($prefix)',
+                  '$label',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -104,14 +104,9 @@ class _MessageSetState extends State<MessageSet> {
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
                 onPressed: onSubmit,
-                icon: const Icon(Icons.send),
-                label: const Text('Send Message'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                  icon: const Icon(Icons.send),
+                  label: const Text("Send Message"),
+
               ),
             ),
           ],
@@ -123,10 +118,9 @@ class _MessageSetState extends State<MessageSet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC),
       appBar: AppBar(
         title: const Text('Set Alert SMS'),
-        backgroundColor: Colors.blue.shade700,
-        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -144,7 +138,8 @@ class _MessageSetState extends State<MessageSet> {
               prefix: predefinedMessage2,
               controller: _messageController2,
               onSubmit: () => _sendSMSG(predefinedMessage2, _messageController2),
-              icon: Icons.mark_chat_read_outlined,
+              icon: Icons.message_outlined,
+              //icon: Icons.mark_chat_read_outlined,
             ),
           ],
         ),

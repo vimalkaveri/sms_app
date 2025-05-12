@@ -99,7 +99,7 @@ class WelcomeScreen extends StatelessWidget {
                       );
                     },
                     child: const Text(
-                      'Forgot or Change Password?',
+                      'Change Password?',
                       style: TextStyle(color: Colors.blueAccent, fontSize: 14),
                     ),
                   ),

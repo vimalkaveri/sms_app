@@ -33,7 +33,7 @@ class _ZoneSetState extends State<ZoneSetPage> {
       icon: Icon(icon ?? Icons.settings, size: 20),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blueAccent,
+        //backgroundColor: Colors.blueAccent,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
@@ -53,12 +53,12 @@ class _ZoneSetState extends State<ZoneSetPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Colors.blueAccent),
+                Icon(icon, /*color: Colors.blueAccent*/),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                      fontSize: 18, fontWeight: FontWeight.bold, /*color: Colors.blueAccent*/),
                 ),
               ],
             ),
@@ -77,7 +77,7 @@ class _ZoneSetState extends State<ZoneSetPage> {
       appBar: AppBar(
         title: const Text('Zone Configuration'),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        //backgroundColor: Colors.blueAccent,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

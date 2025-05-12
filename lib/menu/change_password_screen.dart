@@ -9,19 +9,30 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
 
   Future<void> _saveNewPassword() async {
+    final oldPassword = _oldPasswordController.text.trim();
     final newPassword = _newPasswordController.text.trim();
 
     if (newPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password cannot be empty')),
+        const SnackBar(content: Text('New password cannot be empty')),
       );
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
+    final storedPassword = prefs.getString('app_password') ?? '';
+
+    if (storedPassword != oldPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Old password is incorrect')),
+      );
+      return;
+    }
+
     await prefs.setString('app_password', newPassword);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -40,6 +51,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            TextField(
+              controller: _oldPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: "Enter old password",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _newPasswordController,
               obscureText: true,

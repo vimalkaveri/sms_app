@@ -81,19 +81,19 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.15),
-          child: Icon(icon, color: color),
+          //backgroundColor: color.withOpacity(0.15),
+          child: Icon(icon),
         ),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 16/*, fontWeight: FontWeight.bold*/),
         ),
         trailing: ElevatedButton.icon(
           onPressed: () => sendSMS(context, widget.phoneNumber, message),
           icon: const Icon(Icons.call),
           label: const Text("Send"),
           style: ElevatedButton.styleFrom(
-            backgroundColor: color,
+            //backgroundColor: color,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         ),
@@ -108,7 +108,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
       appBar: AppBar(
         title: const Text('Voice Record'),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        //backgroundColor: Colors.blueAccent,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

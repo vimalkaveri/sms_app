@@ -39,14 +39,14 @@ class _ResetPageState extends State<ResetPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Colors.blueAccent),
+                Icon(icon, /*color: Colors.blueAccent*/),
                 const SizedBox(width: 10),
                 Text(
                   title,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
+                    //color: Colors.blueAccent,
                   ),
                 ),
               ],
@@ -57,7 +57,7 @@ class _ResetPageState extends State<ResetPage> {
               icon: const Icon(Icons.send),
               label: Text(buttonLabel),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                //backgroundColor: Colors.blueAccent,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -78,7 +78,7 @@ class _ResetPageState extends State<ResetPage> {
       appBar: AppBar(
         title: const Text('Reset Options'),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+       // backgroundColor: Colors.blueAccent,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

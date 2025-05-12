@@ -111,7 +111,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
           });
         },
         child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
           elevation: 5,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           color: Colors.blue.shade50,
@@ -122,7 +122,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
                 'Want To Change Admin?',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  //fontWeight: FontWeight.bold,
                   color: Colors.blue.shade700,
                 ),
               ),
@@ -133,7 +133,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 0),
       elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -143,7 +143,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
           children: [
             Text(
               '${type['label']}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
             Expanded(
               child: Padding(
@@ -163,7 +163,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
                         width: 2,
                       ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
                   ),
                 ),
               ),
@@ -181,10 +181,9 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC), // Set background color for the entire Scaffold
       appBar: AppBar(
         title: const Text('Set Phone Number'),
-        backgroundColor: Colors.blue.shade800,
-        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -192,7 +191,7 @@ class _PhoneNumberSetState extends State<PhoneNumberSet> {
           children: [
             const SizedBox(height: 10),
             ...messageTypes.map((type) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              padding: const EdgeInsets.symmetric(vertical: 3.0),
               child: _buildMessageRow(type),
             )),
           ],

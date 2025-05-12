@@ -199,7 +199,8 @@ class _VersionPageState extends State<VersionPage> {
     } catch (e) {
       if (Navigator.canPop(context)) Navigator.of(context).pop();
       _timeoutTimer?.cancel();
-      _showDialog("Error", "SMS failed to send: ${e.toString()}");
+      _showDialog("Unsupported Android Version",
+          "This feature is only available on Android 12 or above.");
     }
   }
 
@@ -265,6 +266,7 @@ class _VersionPageState extends State<VersionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F6FC),
       appBar: AppBar(title: const Text("Version")),
       body: Padding(
         padding: const EdgeInsets.all(16),

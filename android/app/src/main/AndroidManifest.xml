@@ -12,8 +12,8 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false"/>
 
     <application
-        android:label="sms_app"
-        android:icon="@mipmap/ic_launcher"
+        android:label="G-Alert"
+        android:icon="@mipmap/launcher_icon"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true">
 

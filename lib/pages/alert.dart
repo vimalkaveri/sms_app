@@ -50,7 +50,8 @@ class _AlertPageState extends State<AlertPage> {
     }
   }
 
-  Widget _buildDropdown(String selectedValue, void Function(String?) onChanged, String label) {
+  Widget _buildDropdown(String selectedValue, void Function(String?) onChanged,
+      String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -59,7 +60,7 @@ class _AlertPageState extends State<AlertPage> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
+            //color: Colors.blueAccent,
           ),
         ),
         const SizedBox(height: 8),
@@ -71,7 +72,9 @@ class _AlertPageState extends State<AlertPage> {
             color: Colors.white,
           ),
           child: DropdownButton<String>(
-            value: alertTypeMap.containsKey(selectedValue) ? selectedValue : null,
+            value: alertTypeMap.containsKey(selectedValue)
+                ? selectedValue
+                : null,
             hint: const Text('Select Alert Type'),
             isExpanded: true,
             items: alertTypeMap.keys.map((String value) {
@@ -81,7 +84,8 @@ class _AlertPageState extends State<AlertPage> {
               );
             }).toList(),
             onChanged: onChanged,
-            underline: const SizedBox(), // Remove the default underline
+            underline: const SizedBox(),
+            // Remove the default underline
             style: const TextStyle(color: Colors.black, fontSize: 16),
           ),
         ),
@@ -92,18 +96,19 @@ class _AlertPageState extends State<AlertPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // You can uncomment this if you want the Scaffold to have a background color
       backgroundColor: const Color(0xFFF2F6FC),
       appBar: AppBar(
         title: const Text('Alert Type Setup'),
-        centerTitle: true,
-        elevation: 2,
-        backgroundColor: Colors.blueAccent,
       ),
       body: Center(
         child: Card(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
           elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          //color: const Color(0xFFF2F6FC),
+          // Apply background color to Card
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -114,30 +119,30 @@ class _AlertPageState extends State<AlertPage> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
-                _buildDropdown(selectedAlertType1, (value) {
-                  setState(() {
-                    selectedAlertType1 = value!;
-                  });
-                }, 'INPUT 1'), // Label changed to INPUT 1
+                _buildDropdown(
+                  selectedAlertType1,
+                      (value) {
+                    setState(() {
+                      selectedAlertType1 = value!;
+                    });
+                  },
+                  'INPUT 1',
+                ), // Label changed to INPUT 1
                 const SizedBox(height: 16),
-                _buildDropdown(selectedAlertType2, (value) {
-                  setState(() {
-                    selectedAlertType2 = value!;
-                  });
-                }, 'INPUT 2'), // Label changed to INPUT 2
+                _buildDropdown(
+                  selectedAlertType2,
+                      (value) {
+                    setState(() {
+                      selectedAlertType2 = value!;
+                    });
+                  },
+                  'INPUT 2',
+                ), // Label changed to INPUT 2
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: _sendSMS,
                   icon: const Icon(Icons.send),
                   label: const Text('Alert Type'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
                 ),
               ],
             ),
