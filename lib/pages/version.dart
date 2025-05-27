@@ -200,7 +200,7 @@ class _VersionPageState extends State<VersionPage> {
       if (Navigator.canPop(context)) Navigator.of(context).pop();
       _timeoutTimer?.cancel();
       _showDialog("Unsupported Android Version",
-          "This feature is only available on Android 12 or above.");
+          "Please note that this feature is supported only on Android 12 and or above. SMS commands remain available for standard communication. For further information, kindly refer to the Help Page.");
     }
   }
 
