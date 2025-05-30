@@ -107,7 +107,7 @@ class _ZoneSetState extends State<ZoneSetPage> {
                   children: [
                     _buildActionButton("Enable All", "SENBA", icon: Icons.select_all),
                     _buildActionButton("Zone 1", "SENB 1", icon: Icons.looks_one),
-                    _buildActionButton("Zone 2", "SENB2", icon: Icons.looks_two),
+                    _buildActionButton("Zone 2", "SENB 2", icon: Icons.looks_two),
                   ],
                 ),
               ],

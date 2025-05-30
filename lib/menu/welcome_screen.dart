@@ -3,12 +3,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'device_manager_screen.dart';
 import 'change_password_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
-  static final TextEditingController _passwordController = TextEditingController();
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
 
-  Future<void> _login(BuildContext context) async {
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePassword();
+  }
+
+  Future<void> _initializePassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPassword = prefs.getString('app_password');
+
+    // Set default password only if not set
+    if (savedPassword == null) {
+      await prefs.setString('app_password', '1234');
+    }
+  }
+
+  Future<void> _login() async {
     String enteredPassword = _passwordController.text.trim();
     final prefs = await SharedPreferences.getInstance();
     final savedPassword = prefs.getString('app_password') ?? '1234';
@@ -23,6 +44,12 @@ class WelcomeScreen extends StatelessWidget {
         const SnackBar(content: Text('Incorrect Password')),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -77,7 +104,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    onPressed: () => _login(context),
+                    onPressed: _login,
                     icon: const Icon(Icons.login),
                     label: const Text('Login'),
                     style: ElevatedButton.styleFrom(
