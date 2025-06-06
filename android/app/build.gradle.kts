@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.sms_app"
+    namespace = "com.sife.sms_app"
     compileSdk = 35 //flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -20,21 +20,31 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.sms_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23//flutter.minSdkVersion
-        targetSdk = 33 //flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId = "com.sife.sms_app"
+        minSdk = 23 //flutter.minSdkVersion
+        targetSdk = 34 //flutter.targetSdkVersion
+        versionCode = 2
+        versionName = "1.0.1"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("key.jks")
+            storePassword = "SiFe191009"  // replace with your password
+            keyAlias = "my-key-alias"                  // replace with your alias
+            keyPassword = "SiFe191009"          // replace with your key password (usually same as store password)
+        }
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
