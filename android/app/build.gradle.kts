@@ -23,8 +23,8 @@ android {
         applicationId = "com.sife.sms_app"
         minSdk = 23 //flutter.minSdkVersion
         targetSdk = 34 //flutter.targetSdkVersion
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 6
+        versionName = "1.0.0"
     }
 
     signingConfigs {
