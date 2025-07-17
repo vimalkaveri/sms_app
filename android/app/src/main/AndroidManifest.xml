@@ -1,13 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
+<!-- Required SMS permissions -->
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
-
-    <uses-feature android:name="android.hardware.telephony" android:required="false"/>
+    <!-- Required to identify telephony hardware (optional) -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
         android:label="G-Alert"
@@ -29,10 +28,12 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="com.shounakmulay.telephony.sms.IncomingSmsReceiver"
+        <!-- SMS BroadcastReceiver -->
+        <receiver
+            android:name=".sms.SmsReceiver"
             android:permission="android.permission.BROADCAST_SMS"
             android:exported="true">
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
