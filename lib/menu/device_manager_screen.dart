@@ -465,30 +465,6 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 7),
-
-                      Row(
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Device added',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
