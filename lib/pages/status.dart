@@ -680,6 +680,11 @@ class _StatusPageState extends State<StatusPage> {
                       controller: _replyController,
                       maxLines: 6,
 
+                      style: const TextStyle(
+                        color: Colors.black, // Typed text color
+                        fontSize: 14,
+                      ),
+
                       decoration: const InputDecoration(
                         hintText:
                         'Paste the device reply here...\n\n'
@@ -689,6 +694,12 @@ class _StatusPageState extends State<StatusPage> {
                             'S2-E-A-O-CLS,\n'
                             'SMS-AVBL,\n'
                             'CALL-AVBL',
+
+                        hintStyle: TextStyle(
+                          color: Colors.grey, // Hint/example text color
+                          fontSize: 14,
+                        ),
+
                         border: OutlineInputBorder(),
                       ),
                     ),
