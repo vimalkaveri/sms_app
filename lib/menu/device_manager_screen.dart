@@ -175,7 +175,7 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
                     controller: _deviceNameController,
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
-                      hintText: 'e.g. My Android Phone',
+                      hintText: 'e.g. Name/Location',
                       prefixIcon: const Icon(
                         Icons.smartphone_rounded,
                         color: Colors.blue,

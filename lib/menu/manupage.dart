@@ -296,11 +296,11 @@ class DeviceDetailsScreen extends StatelessWidget {
 
                 Row(
                   children: [
-                    const Icon(
+                    /*const Icon(
                       Icons.phone_outlined,
                       color: Colors.white70,
                       size: 16,
-                    ),
+                    ),*/
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
