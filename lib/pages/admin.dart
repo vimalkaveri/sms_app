@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:telephony/telephony.dart';
 import '../controller/sms_controller.dart';
 
 class AdminPage extends StatefulWidget {

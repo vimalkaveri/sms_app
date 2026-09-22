@@ -1,18 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-<!-- Required SMS permissions -->
-    <uses-permission android:name="android.permission.SEND_SMS"/>
-    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
-    <uses-permission android:name="android.permission.READ_SMS"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
-    <!-- Required to identify telephony hardware (optional) -->
-    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
         android:label="G-Alert"
         android:icon="@mipmap/launcher_icon"
-        android:name="${applicationName}"
-        android:usesCleartextTraffic="true">
+        android:name="${applicationName}">
 
         <activity
             android:name=".MainActivity"
@@ -28,18 +20,16 @@
             </intent-filter>
         </activity>
 
-        <!-- SMS BroadcastReceiver -->
-        <receiver
-            android:name=".sms.SmsReceiver"
-            android:permission="android.permission.BROADCAST_SMS"
-            android:exported="true">
-            <intent-filter android:priority="999">
-                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
-            </intent-filter>
-        </receiver>
 
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Required on Android 11+ so canLaunchUrl() can see the SMS app -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="sms"/>
+        </intent>
+    </queries>
 </manifest>

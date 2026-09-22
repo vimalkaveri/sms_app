@@ -22,6 +22,9 @@ class DeviceDetailsScreen extends StatelessWidget {
 
   final MaterialColor _primarySwatch = Colors.blue;
 
+  // Change this to whatever color you want the back arrow to be.
+  final Color _backArrowColor = Colors.white;
+
   final List<SettingsItem> settings = [
     SettingsItem(icon: Icons.admin_panel_settings, label: 'Admin', page: (p) => AdminPage(phoneNumber: p)),
     SettingsItem(icon: Icons.phone, label: 'Ph No.', page: (p) => PhoneNumberSet(phoneNumber: p)),
@@ -49,6 +52,7 @@ class DeviceDetailsScreen extends StatelessWidget {
         centerTitle: true,
         backgroundColor: _primarySwatch.shade700,
         elevation: 4,
+        iconTheme: IconThemeData(color: _backArrowColor),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -72,8 +76,8 @@ class DeviceDetailsScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(device.deviceName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(device.phoneNumber, style: const TextStyle(fontSize: 14)),
+        Text(device.deviceName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(device.phoneNumber, style: const TextStyle(fontSize: 14, color: Colors.white)),
       ],
     );
   }

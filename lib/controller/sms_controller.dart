@@ -1,58 +1,38 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:telephony/telephony.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+/// Opens the phone's native SMS app with the number and message
+/// pre-filled; the user reviews and taps Send themselves.
+///
+/// This intentionally does NOT send SMS directly/silently. Google Play's
+/// restricted-permissions policy only allows SEND_SMS/RECEIVE_SMS for
+/// apps registered as the device's default SMS handler — not viable for
+/// a device-config utility. Using the OS's own compose screen needs no
+/// SMS permission at all and is fully Play Store compliant.
+///
+/// Public method names/signatures are kept the same as the old
+/// telephony-based controller so existing call sites don't need to
+/// change: requestPermissions() and startListeningForSMS() are now
+/// no-ops kept only so old call sites keep compiling; feel free to
+/// delete those calls from each page when convenient.
 class SMSController {
-  final Telephony telephony = Telephony.instance;
-  Timer? _responseTimeoutTimer;
-  final ValueNotifier<bool> _responseReceived = ValueNotifier<bool>(false);
-  String? _lastSentNumber;
-  List<SmsMessage> receivedMessages = [];
+  /// No longer needed (no SMS permission required for compose-screen
+  /// sending). Kept as a no-op so existing initState() calls don't
+  /// break; safe to delete the call sites over time.
+  Future<void> requestPermissions(BuildContext context) async {}
 
-  /// Request required permissions (SMS and Phone)
-  Future<void> requestPermissions(BuildContext context) async {
-    final statuses = await [
-      Permission.sms,
-      Permission.phone,
-    ].request();
+  /// No longer possible without RECEIVE_SMS/READ_SMS, which Play Store
+  /// restricts the same way. Kept as a no-op so existing initState()
+  /// calls don't break; safe to delete the call sites over time.
+  void startListeningForSMS(BuildContext context) {}
 
-    if (!statuses[Permission.sms]!.isGranted || !statuses[Permission.phone]!.isGranted) {
-      _showPopupStatusDialog(
-        context,
-        "Permission Error",
-        "SMS & Phone permissions are required.",
-      );
-    }
-  }
-
-  /// Start listening for incoming SMS messages
-  void startListeningForSMS(BuildContext context) {
-    telephony.listenIncomingSms(
-      onNewMessage: (SmsMessage message) {
-        final sender = message.address?.replaceAll(RegExp(r'\D'), '');
-        final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
-
-        if (!_responseReceived.value && sender != null && expected != null && sender.endsWith(expected)) {
-          _responseReceived.value = true;
-          _responseTimeoutTimer?.cancel();
-
-          if (Navigator.canPop(context)) {
-            Navigator.of(context).pop(); // Close loading dialog
-          }
-
-          receivedMessages.insert(0, message);
-          _showPopupDialog(context, message);
-        } else {
-          receivedMessages.insert(0, message);
-        }
-      },
-      listenInBackground: false,
-    );
-  }
-
-  /// Send an SMS and wait for a response
-  void sendSMS(BuildContext context, String phoneNumber, String message) async {
+  /// Opens the SMS compose screen pre-filled with [message] addressed
+  /// to [phoneNumber]. The user must tap Send in their SMS app.
+  Future<void> sendSMS(
+    BuildContext context,
+    String phoneNumber,
+    String message,
+  ) async {
     if (phoneNumber.isEmpty || message.isEmpty) {
       _showPopupStatusDialog(
         context,
@@ -62,93 +42,26 @@ class SMSController {
       return;
     }
 
-    final permission = await Permission.sms.status;
-    if (!permission.isGranted) {
-      final result = await Permission.sms.request();
-      if (!result.isGranted) {
-        _showPopupStatusDialog(context, 'Permission Denied', 'SMS permission not granted');
-        return;
-      }
-    }
-
-    _lastSentNumber = phoneNumber;
-    _responseReceived.value = false;
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Waiting for reply...'),
-          ],
-        ),
-      ),
+    final uri = Uri(
+      scheme: 'sms',
+      path: phoneNumber,
+      queryParameters: {'body': message},
     );
-
-    // Set timeout for response
-    _responseTimeoutTimer = Timer(const Duration(seconds: 60), () {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_responseReceived.value && Navigator.canPop(context)) {
-          Navigator.of(context).pop(); // Close loading dialog
-          _showPopupStatusDialog(context, 'No Response', 'Please try again later.');
-        }
-      });
-    });
 
     try {
-      await telephony.sendSms(to: phoneNumber, message: message);
-    } catch (e) {
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop(); // Close loading
+      final opened = await canLaunchUrl(uri) && await launchUrl(uri);
+      if (!opened) {
+        _showPopupStatusDialog(
+          context,
+          'Could Not Open Messages',
+          'No SMS app was found to send this command.',
+        );
       }
-      _responseTimeoutTimer?.cancel();
-      _showPopupStatusDialog(
-        context,
-        "Unsupported Android Version",
-          "Please note that this feature is supported only on Android 12 and or above. SMS commands remain available for standard communication. For further information, kindly refer to the Help Page.");
+    } catch (e) {
+      _showPopupStatusDialog(context, 'Error', 'Failed to open SMS app.');
     }
   }
 
-  /// Show a modern, styled popup for received SMS
-  void _showPopupDialog(BuildContext context, SmsMessage message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          titlePadding: const EdgeInsets.all(20),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (message.address != null) ...[
-                const SizedBox(height: 12),
-              ],
-              const SizedBox(height: 5),
-              Text(
-                message.body ?? 'No Content',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Close', style: TextStyle(color: Colors.blue)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Show a status dialog for errors or info
   void _showPopupStatusDialog(BuildContext context, String title, String content) {
     showDialog(
       context: context,
@@ -165,13 +78,6 @@ class SMSController {
           ],
         );
       },
-    );
-  }
-
-  /// Show snackbar for simple feedback
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }

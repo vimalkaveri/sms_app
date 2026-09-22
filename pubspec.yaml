@@ -11,19 +11,22 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  telephony: ^0.2.0
-  permission_handler: ^12.0.0+1
-  flutter_pdfview: ^1.4.0+1
-  path_provider: ^2.1.5
-  platform: ^3.1.6
-  device_info_plus: ^11.4.0
-  phone_state: ^2.1.1
-  intl: ^0.20.2
-  flutter_hooks: ^0.21.2
-  hooks_riverpod: ^2.6.1
-  shared_preferences: ^2.5.3
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
+
+
+  # Opens the device's native SMS app pre-filled with the number + command
+  # text; the user taps Send themselves. This needs NO SMS permission,
+  # since the OS's own SMS app sends the message, not ours — so it's
+  # compliant with Google Play's restricted SMS/Call Log permissions
+  # policy (which otherwise requires the app to be the default SMS
+  # handler, not viable for a device-config utility). This replaces the
+  # earlier direct-send-via-telephony approach.
+  url_launcher: ^6.3.0
+
+  # Local storage for device profile (number, admin password, saved commands)
+  shared_preferences: ^2.2.3
+  path_provider: ^2.1.6
+  flutter_pdfview: ^1.4.5
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:
@@ -35,7 +38,6 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/icon/icon.png"  # Ensure the correct path here
-  android_icon: "G-Alert"
   remove_alpha_ios: true  # Optional: removes alpha for iOS App Store
   web: false  # Disable web icon generation
   windows: false  # Disable Windows icon generation
@@ -43,7 +45,6 @@ flutter_icons:
 
 flutter:
   assets:
+    - assets/icon/  # Include the icon folder to be accessible in
     - assets/manual.pdf
-    - assets/icon/  # Include the icon folder to be accessible in Flutter
-
   uses-material-design: true

@@ -1,11 +1,13 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:telephony/telephony.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+/// Sends "SPHO" via the SMS compose screen. The device replies with
+/// TWO messages ("PR-M1:" and "PR-M2:"), so the user pastes each one in
+/// separately and taps Parse once both are filled in. See status.dart
+/// for why this no longer auto-captures replies.
 class PhoneNumberGet extends StatefulWidget {
   final String phoneNumber;
 
@@ -16,97 +18,24 @@ class PhoneNumberGet extends StatefulWidget {
 }
 
 class _PhoneNumberGetState extends State<PhoneNumberGet> {
-  final Telephony _telephony = Telephony.instance;
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _m1Controller = TextEditingController();
+  final TextEditingController _m2Controller = TextEditingController();
   final ValueNotifier<Map<String, dynamic>> _latestMessage = ValueNotifier({
     'message': {},
     'timestamp': 0,
   });
 
-  final ValueNotifier<bool> _responseReceived = ValueNotifier(false);
-  Timer? _timeoutTimer;
-  String? _lastSentNumber;
-
-  String? _m1Message;
-  String? _m2Message;
-
   @override
   void initState() {
     super.initState();
     _phoneController.text = widget.phoneNumber;
-    _requestPermissions();
-    _listenToIncomingSMS();
     _loadLatestMessage();
-  }
-
-  Future<void> _requestPermissions() async {
-    final statuses = await [
-      Permission.sms,
-      Permission.phone,
-    ].request();
-
-    if (!statuses[Permission.sms]!.isGranted || !statuses[Permission.phone]!.isGranted) {
-      _showDialog("Permission Error", "SMS & Phone permissions are required.");
-    }
-  }
-
-  void _listenToIncomingSMS() {
-    _telephony.listenIncomingSms(
-      onNewMessage: (SmsMessage message) {
-        final sender = message.address?.replaceAll(RegExp(r'\D'), '');
-        final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
-
-        if (!_responseReceived.value &&
-            sender != null &&
-            expected != null &&
-            sender.endsWith(expected)) {
-          _responseReceived.value = true;
-          _timeoutTimer?.cancel();
-          if (Navigator.canPop(context)) Navigator.of(context).pop();
-        }
-
-        final body = message.body?.trim() ?? '';
-
-        if (body.startsWith("PR-M1:")) {
-          _m1Message = body;
-        } else if (body.startsWith("PR-M2:")) {
-          _m2Message = body;
-        }
-
-        if (_m1Message != null && _m2Message != null) {
-          final allParams = <String, String>{};
-
-          final m1Lines = _m1Message!.split('\n');
-          final m2Lines = _m2Message!.split('\n');
-          final allLines = [...m1Lines.skip(1), ...m2Lines.skip(1)]; // skip PR-M1:/PR-M2:
-
-          for (var i = 0; i < allLines.length; i++) {
-            final param = 'P${i + 1}';
-            final value = allLines[i].replaceAll('$param-', '').trim();
-            allParams[param] = value;
-          }
-
-          final timestamp = message.date ?? DateTime.now().millisecondsSinceEpoch;
-
-          _latestMessage.value = {
-            'message': allParams,
-            'timestamp': timestamp,
-          };
-
-          _saveLatestMessage(jsonEncode(allParams), timestamp);
-
-          _m1Message = null;
-          _m2Message = null;
-        }
-      },
-      listenInBackground: false,
-    );
   }
 
   Future<void> _saveLatestMessage(String message, int timestamp) async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-
     await prefs.setString('message_${keyPrefix}_phone', message);
     await prefs.setInt('message_${keyPrefix}_phone_time', timestamp);
   }
@@ -135,45 +64,48 @@ class _PhoneNumberGetState extends State<PhoneNumberGet> {
       return;
     }
 
-    if (!await Permission.sms.isGranted) {
-      if (!await Permission.sms.request().isGranted) {
-        _showDialog("Permission Denied", "SMS permission not granted.");
-        return;
-      }
-    }
-
-    _lastSentNumber = phoneNumber;
-    _responseReceived.value = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Waiting for reply...'),
-          ],
-        ),
-      ),
+    final uri = Uri(
+      scheme: 'sms',
+      path: phoneNumber,
+      queryParameters: {'body': fixedMessage},
     );
 
-    _timeoutTimer = Timer(const Duration(seconds: 60), () {
-      if (!_responseReceived.value && Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-        _showDialog("No Response", "Please try again later.");
-      }
-    });
-
-    try {
-      await _telephony.sendSms(to: phoneNumber, message: fixedMessage);
-    } catch (e) {
-      if (Navigator.canPop(context)) Navigator.of(context).pop();
-      _timeoutTimer?.cancel();
-      _showDialog( "Unsupported Android Version",
-          "Please note that this feature is supported only on Android 12 and or above. SMS commands remain available for standard communication. For further information, kindly refer to the Help Page.");
+    final opened = await canLaunchUrl(uri) && await launchUrl(uri);
+    if (!opened) {
+      _showDialog("Could Not Open Messages", "No SMS app was found.");
     }
+  }
+
+  void _parsePastedReplies() {
+    final m1 = _m1Controller.text.trim();
+    final m2 = _m2Controller.text.trim();
+
+    if (!m1.startsWith("PR-M1:") || !m2.startsWith("PR-M2:")) {
+      _showDialog(
+        "Couldn't Parse Replies",
+        "Paste both device replies: the first starting with \"PR-M1:\" and "
+            "the second starting with \"PR-M2:\".",
+      );
+      return;
+    }
+
+    final allParams = <String, String>{};
+    final m1Lines = m1.split('\n');
+    final m2Lines = m2.split('\n');
+    final allLines = [...m1Lines.skip(1), ...m2Lines.skip(1)]; // skip PR-M1:/PR-M2:
+
+    for (var i = 0; i < allLines.length; i++) {
+      final param = 'P${i + 1}';
+      final value = allLines[i].replaceAll('$param-', '').trim();
+      allParams[param] = value;
+    }
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    _latestMessage.value = {'message': allParams, 'timestamp': timestamp};
+    _saveLatestMessage(jsonEncode(allParams), timestamp);
+    _m1Controller.clear();
+    _m2Controller.clear();
+    FocusScope.of(context).unfocus();
   }
 
   void _showDialog(String title, String content) {
@@ -229,8 +161,9 @@ class _PhoneNumberGetState extends State<PhoneNumberGet> {
 
   @override
   void dispose() {
-    _timeoutTimer?.cancel();
     _phoneController.dispose();
+    _m1Controller.dispose();
+    _m2Controller.dispose();
     super.dispose();
   }
 
@@ -241,13 +174,58 @@ class _PhoneNumberGetState extends State<PhoneNumberGet> {
       appBar: AppBar(title: const Text("Get Phone Number")),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(  // Add scroll view here
+        child: SingleChildScrollView(
           child: Column(
             children: [
               ElevatedButton.icon(
                 onPressed: _sendSMS,
                 icon: const Icon(Icons.send),
                 label: const Text("Get Number"),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "The device replies with two messages. Paste each one below.",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _m1Controller,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'First reply',
+                          hintText: 'Paste the reply starting with "PR-M1:"',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _m2Controller,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Second reply',
+                          hintText: 'Paste the reply starting with "PR-M2:"',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          onPressed: _parsePastedReplies,
+                          icon: const Icon(Icons.check),
+                          label: const Text("Parse Replies"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               ValueListenableBuilder<Map<String, dynamic>>(
@@ -260,7 +238,7 @@ class _PhoneNumberGetState extends State<PhoneNumberGet> {
 
                   final message = Map<String, dynamic>.from(data['message'] ?? {});
                   if (message.isEmpty) {
-                    return const Center(child: Text("No structured message received yet."));
+                    return const Center(child: Text("No structured message parsed yet."));
                   }
 
                   return _buildMessageCard(data, formattedDate);

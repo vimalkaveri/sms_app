@@ -1,11 +1,12 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:telephony/telephony.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+/// Sends "GVER" via the SMS compose screen; the user pastes the
+/// device's "GV:" reply back in to see it parsed. See status.dart for
+/// why this no longer auto-captures the reply.
 class VersionPage extends StatefulWidget {
   final String phoneNumber;
 
@@ -16,133 +17,60 @@ class VersionPage extends StatefulWidget {
 }
 
 class _VersionPageState extends State<VersionPage> {
-  final Telephony _telephony = Telephony.instance;
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _replyController = TextEditingController();
   final ValueNotifier<Map<String, dynamic>> _latestMessage = ValueNotifier({
     'message': {},
     'timestamp': 0,
   });
-  final ValueNotifier<bool> _responseReceived = ValueNotifier(false);
-
-  Timer? _timeoutTimer;
-  String? _lastSentNumber;
 
   @override
   void initState() {
     super.initState();
     _phoneController.text = widget.phoneNumber;
-    _requestPermissions();
-    _listenToIncomingSMS();
     _loadLatestMessage();
   }
 
-  Future<void> _requestPermissions() async {
-    final statuses = await [
-      Permission.sms,
-      Permission.phone,
-    ].request();
+  Map<String, String>? _parseVersionBody(String rawBody) {
+    final body = rawBody.trim();
+    if (!body.startsWith("GV:")) return null;
 
-    if (!statuses[Permission.sms]!.isGranted || !statuses[Permission.phone]!.isGranted) {
-      _showDialog("Permission Error", "SMS & Phone permissions are required.");
-    } else {
-      print("Permissions granted: SMS and Phone");
+    final content = body.replaceFirst("GV:", "").trim();
+    final lines = content.split('\n').map((e) => e.trim()).toList();
+
+    String version = '';
+    String imei = '';
+    String gsm = '';
+
+    for (var line in lines) {
+      if (line.startsWith("NANO")) {
+        final versionLine = line.replaceFirst("NANO", "").trim();
+        final versionMatch = RegExp(r"VER:\s*([0-9.]+)").firstMatch(versionLine);
+        if (versionMatch != null) {
+          version = versionMatch.group(1) ?? '';
+        }
+      } else if (line.startsWith("IMEI")) {
+        imei = line.replaceFirst("IMEI:", "").trim();
+      } else if (line.startsWith("GSM")) {
+        gsm = line.replaceFirst("GSM:", "").trim();
+      }
     }
-  }
 
-  void _listenToIncomingSMS() {
-    _telephony.listenIncomingSms(
-      onNewMessage: (SmsMessage message) {
-        print("Incoming SMS: ${message.body}");
-        final sender = message.address?.replaceAll(RegExp(r'\D'), '');
-        final expected = _lastSentNumber?.replaceAll(RegExp(r'\D'), '');
-
-        print("Sender: $sender | Expected: $expected");
-
-        if (!_responseReceived.value &&
-            sender != null &&
-            expected != null &&
-            sender.endsWith(expected)) {
-          print("Response matched. Closing dialog.");
-          _responseReceived.value = true;
-          _timeoutTimer?.cancel();
-          if (Navigator.canPop(context)) Navigator.of(context).pop();
-        }
-
-        final body = message.body?.trim() ?? '';
-
-        if (body.startsWith("GV:")) {
-          print("GV message detected.");
-          final content = body.replaceFirst("GV:", "").trim();
-          final lines = content.split('\n').map((e) => e.trim()).toList();
-
-          String version = '';
-          String imei = '';
-          String gsm = '';
-
-          for (var line in lines) {
-            print("Line: $line");
-
-            if (line.startsWith("NANO")) {
-              final versionLine = line.replaceFirst("NANO", "").trim();
-              final versionMatch = RegExp(r"VER:\s*([0-9.]+)").firstMatch(versionLine);
-              if (versionMatch != null) {
-                version = versionMatch.group(1) ?? '';
-              }
-            } else if (line.startsWith("IMEI")) {
-              imei = line.replaceFirst("IMEI:", "").trim();
-            } else if (line.startsWith("GSM")) {
-              gsm = line.replaceFirst("GSM:", "").trim();
-            }
-          }
-
-          print("Extracted Data => Version: $version | IMEI: $imei | GSM: $gsm");
-
-          final structuredMessage = {
-            'VERSION': version,
-            'IMEI': imei,
-            'GSM': gsm,
-          };
-
-          final timestamp = message.date ?? DateTime.now().millisecondsSinceEpoch;
-
-          _latestMessage.value = {
-            'message': structuredMessage,
-            'timestamp': timestamp,
-          };
-
-          _saveLatestMessage(jsonEncode(structuredMessage), timestamp);
-        } else {
-          print("SMS did not start with 'GV:', skipping...");
-        }
-      },
-      listenInBackground: false,
-    );
+    return {'VERSION': version, 'IMEI': imei, 'GSM': gsm};
   }
 
   Future<void> _saveLatestMessage(String message, int timestamp) async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    print("Saving to SharedPreferences with prefix: $keyPrefix");
-
-    final msgKey = 'message_${keyPrefix}_version';
-    final timeKey = 'message_${keyPrefix}_version_time';
-
-    bool msgSaved = await prefs.setString(msgKey, message);
-    bool timeSaved = await prefs.setInt(timeKey, timestamp);
-
-    print("Message saved: $msgSaved | Timestamp saved: $timeSaved");
+    await prefs.setString('message_${keyPrefix}_version', message);
+    await prefs.setInt('message_${keyPrefix}_version_time', timestamp);
   }
 
   Future<void> _loadLatestMessage() async {
     final prefs = await SharedPreferences.getInstance();
     final keyPrefix = widget.phoneNumber;
-    final msgKey = 'message_${keyPrefix}_version';
-    final timeKey = 'message_${keyPrefix}_version_time';
-
-    final messageJson = prefs.getString(msgKey);
-    final timestamp = prefs.getInt(timeKey) ?? 0;
-
-    print("Loaded from SharedPreferences: $messageJson at $timestamp");
+    final messageJson = prefs.getString('message_${keyPrefix}_version');
+    final timestamp = prefs.getInt('message_${keyPrefix}_version_time') ?? 0;
 
     if (messageJson != null) {
       final structuredMessage = jsonDecode(messageJson);
@@ -162,46 +90,33 @@ class _VersionPageState extends State<VersionPage> {
       return;
     }
 
-    if (!await Permission.sms.isGranted) {
-      if (!await Permission.sms.request().isGranted) {
-        _showDialog("Permission Denied", "SMS permission not granted.");
-        return;
-      }
-    }
-
-    _lastSentNumber = phoneNumber;
-    _responseReceived.value = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Waiting for reply...'),
-          ],
-        ),
-      ),
+    final uri = Uri(
+      scheme: 'sms',
+      path: phoneNumber,
+      queryParameters: {'body': fixedMessage},
     );
 
-    _timeoutTimer = Timer(const Duration(seconds: 60), () {
-      if (!_responseReceived.value && Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-        _showDialog("No Response", "Please try again later.");
-      }
-    });
-
-    try {
-      print("Sending SMS to $phoneNumber");
-      await _telephony.sendSms(to: phoneNumber, message: fixedMessage);
-    } catch (e) {
-      if (Navigator.canPop(context)) Navigator.of(context).pop();
-      _timeoutTimer?.cancel();
-      _showDialog("Unsupported Android Version",
-          "Please note that this feature is supported only on Android 12 and or above. SMS commands remain available for standard communication. For further information, kindly refer to the Help Page.");
+    final opened = await canLaunchUrl(uri) && await launchUrl(uri);
+    if (!opened) {
+      _showDialog("Could Not Open Messages", "No SMS app was found.");
     }
+  }
+
+  void _parsePastedReply() {
+    final parsed = _parseVersionBody(_replyController.text);
+    if (parsed == null) {
+      _showDialog(
+        "Couldn't Parse Reply",
+        "The pasted text doesn't look like a version reply (expected it to start with \"GV:\").",
+      );
+      return;
+    }
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    _latestMessage.value = {'message': parsed, 'timestamp': timestamp};
+    _saveLatestMessage(jsonEncode(parsed), timestamp);
+    _replyController.clear();
+    FocusScope.of(context).unfocus();
   }
 
   void _showDialog(String title, String content) {
@@ -258,8 +173,8 @@ class _VersionPageState extends State<VersionPage> {
 
   @override
   void dispose() {
-    _timeoutTimer?.cancel();
     _phoneController.dispose();
+    _replyController.dispose();
     super.dispose();
   }
 
@@ -270,7 +185,7 @@ class _VersionPageState extends State<VersionPage> {
       appBar: AppBar(title: const Text("Version")),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: ListView(
           children: [
             ElevatedButton.icon(
               onPressed: _sendSMS,
@@ -278,22 +193,54 @@ class _VersionPageState extends State<VersionPage> {
               label: const Text("Get Version"),
             ),
             const SizedBox(height: 20),
-            Expanded(
-              child: ValueListenableBuilder<Map<String, dynamic>>(
-                valueListenable: _latestMessage,
-                builder: (context, data, _) {
-                  final timestamp = data['timestamp'] ?? 0;
-                  final formattedDate = timestamp != 0
-                      ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(timestamp))
-                      : 'Unknown';
-
-                  if ((data['message'] as Map).isEmpty) {
-                    return const Center(child: Text("No structured message received yet."));
-                  }
-
-                  return _buildMessageCard(data, formattedDate);
-                },
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "After the device replies, open Messages, copy its reply, and paste it below.",
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _replyController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText: 'Paste the device\'s reply here (starts with "GV:")',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        onPressed: _parsePastedReply,
+                        icon: const Icon(Icons.check),
+                        label: const Text("Parse Reply"),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
+            const SizedBox(height: 20),
+            ValueListenableBuilder<Map<String, dynamic>>(
+              valueListenable: _latestMessage,
+              builder: (context, data, _) {
+                final timestamp = data['timestamp'] ?? 0;
+                final formattedDate = timestamp != 0
+                    ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(timestamp))
+                    : 'Unknown';
+
+                if ((data['message'] as Map).isEmpty) {
+                  return const Center(child: Text("No structured message parsed yet."));
+                }
+
+                return _buildMessageCard(data, formattedDate);
+              },
             ),
           ],
         ),
